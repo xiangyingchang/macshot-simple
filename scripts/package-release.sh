@@ -23,7 +23,7 @@ for arch in arm64 x86_64; do
   cat "$staging/thin-$arch" > "$binary"
   codesign --force --deep --sign - --entitlements macshot/macshot.entitlements "$stage/MacShot Simple.app"
   codesign --verify --deep --strict "$stage/MacShot Simple.app"
-  lipo -verify_arch "$arch" "$binary"
+  lipo "$binary" -verify_arch "$arch"
   ln -s /Applications "$stage/Applications"
   cp LICENSE NOTICE "$stage/"
   cat > "$stage/INSTALL.txt" <<'TEXT'
