@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0 — 2026-10-07 (long screenshot preview)
+
+Manual vertical long screenshots (macOS 14+), continuous region capture, an eight-frame
+buffer, content-edge overlap validation, compatible still-capture fallback, and a
+scrollable result reusing the six annotation tools.
+One-pixel scrolling, tolerance for small local changes, and delayed recovery guidance
+reduce transient overlap failures. Fix completion/cancellation delivery, bounded stream
+handoff, initial viewport limits, partial-result reporting and failed mosaic exports.
+Remove unused helpers and redundant pixel conversion. Enable size optimization,
+dead-code stripping and compact DMG packaging; installers are about 1.32/1.33 MB.
+No event injection, third-party dependency or additional entitlement.
+
 ## 0.1.2 — 2026-10-07 (new app icon)
 
 Original minimal screenshot-selection icon replaces the upstream shutter icon.

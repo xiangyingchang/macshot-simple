@@ -8,7 +8,8 @@ The old full application is not part of this source tree.
 Keep: multi-display screen capture, window hover preview, selection/move/eight-handle resize,
 six annotations (rectangle, ellipse, arrow, pencil, pixelate, text), three stroke widths,
 six colors, undo/redo, clipboard and PNG save, one configurable global hotkey.
-Do not reintroduce recording, uploads, OCR, history, standalone editors or updates incidentally.
+Also keep the explicitly requested manual vertical long screenshot workflow.
+Do not reintroduce recording, uploads, OCR, history, unrelated standalone editors or updates incidentally.
 
 ## Architecture
 

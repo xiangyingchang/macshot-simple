@@ -5,11 +5,11 @@ import hashlib
 import zipfile
 
 root = Path(__file__).resolve().parent.parent
-output = root / "dist" / "MacShot-Simple-0.1.2-source.zip"
+output = root / "dist" / "MacShot-Simple-0.2.0-source.zip"
 output.parent.mkdir(exist_ok=True)
 files = ["README.md", "README.en.md", "LICENSE", "NOTICE", "PRIVACY.md", "CONTRIBUTING.md", "SECURITY.md",
          "CHANGELOG.md", "DESIGN.md", "AGENTS.md", "CLAUDE.md", ".gitignore", "RELEASE-READINESS.md"]
-folders = ["macshot", "macshotTests", "macshot.xcodeproj", "scripts", ".github"]
+folders = ["macshot", "macshotTests", "macshot.xcodeproj", "scripts", ".github", "docs"]
 excluded_parts = {"xcuserdata", ".DS_Store", "__pycache__", ".git"}
 paths = [root / name for name in files]
 for folder in folders:

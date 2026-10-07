@@ -16,6 +16,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var previousApp: NSRunningApplication?
     private var capturing = false
     private var saving = false
+    private var scrollSession: AnyObject?
+    private var longReview: LongCaptureReview?
     private var preferences: PreferencesController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -81,7 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showPreferences() {
-        guard windows.isEmpty, !capturing else { return }
+        guard windows.isEmpty, !capturing, scrollSession == nil, longReview == nil else { return }
         if preferences?.window?.isVisible == true {
             NSApp.activate(ignoringOtherApps: true); preferences?.showWindow(nil); return
         }
@@ -102,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showAbout() {
-        guard windows.isEmpty, !capturing else { return }
+        guard windows.isEmpty, !capturing, scrollSession == nil, longReview == nil else { return }
         previousApp = NSWorkspace.shared.frontmostApplication
         let alert = NSAlert()
         alert.messageText = "MacShot Simple"
@@ -116,7 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func startCapture() {
-        guard !capturing, !saving, windows.isEmpty, preferences?.window?.isVisible != true else { return }
+        guard !capturing, !saving, windows.isEmpty, scrollSession == nil, longReview == nil, preferences?.window?.isVisible != true else { return }
         capturing = true
         previousApp = NSWorkspace.shared.frontmostApplication
         let immediate = ScreenCaptureManager.makeImmediateCaptureContext()
@@ -166,6 +168,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self else { return }
                 for other in self.windows.compactMap({ $0.contentView as? CaptureCanvas }) where other !== canvas { other.resetSelection() }
             }
+            canvas.onScroll = { [weak self] rect in self?.startLongCapture(screen: capture.screen, selection: rect) }
             canvas.onCancel = { [weak self] in self?.dismissCaptures() }
             canvas.onCopy = { [weak self] image in self?.copy(image) }
             canvas.onSave = { [weak self] image in self?.save(image) }
@@ -185,6 +188,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func startLongCapture(screen: NSScreen, selection: NSRect) {
+        guard #available(macOS 14.0, *) else {
+            showError("长截图需要 macOS 14 或以上", detail: "普通截图仍可继续使用。"); return
+        }
+        guard selection.width * screen.backingScaleFactor >= 32,
+              selection.height * screen.backingScaleFactor >= 64 else {
+            showError("选区太小", detail: "请选中更大的可滚动内容区域。"); return
+        }
+        if #available(macOS 26.0, *), ScrollCaptureSession.hudFrame(screen:screen,selection:selection) == nil {
+            showError("请为完成按钮留出一点空间", detail:"缩小选区，在上方或下方留出约 60 点空白；建议只框选滚动内容。"); return
+        }
+        for window in windows { window.orderOut(nil); window.close() }
+        windows.removeAll()
+        previousApp?.activate(options: .activateIgnoringOtherApps)
+        let session = ScrollCaptureSession(screen: screen, selection: selection)
+        scrollSession = session
+        session.onFinish = { [weak self] image, note in
+            guard let self else { return }
+            self.scrollSession = nil
+            guard let image else { self.returnFocusIfNeeded(); return }
+            let review = LongCaptureReview(image: image)
+            if let note { review.window?.title = "长截图 · \(note)" }
+            self.longReview = review
+            review.canvas.onCopy = { [weak self] in self?.copy($0) }
+            review.canvas.onSave = { [weak self] in self?.save($0) }
+            review.canvas.onCancel = { [weak self] in self?.dismissCaptures() }
+            review.canvas.onFailure = { [weak self] in self?.showError("无法生成长截图", detail:"图片没有复制或保存，请重试。") }
+            review.onClose = { [weak self] in self?.longReview = nil; self?.returnFocusIfNeeded() }
+            NSApp.activate(ignoringOtherApps: true); review.showWindow(nil)
+        }
+        session.start()
+    }
+
     private func pngData(_ image: CGImage) -> Data? {
         NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
     }
@@ -201,6 +237,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !saving, let data = pngData(image) else { showError("保存失败", detail: "无法生成 PNG，请重试。"); return }
         saving = true
         windows.forEach { $0.orderOut(nil) }
+        longReview?.window?.orderOut(nil)
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.png]; panel.canCreateDirectories = true
         let formatter = DateFormatter(); formatter.dateFormat = "yyyy-MM-dd HH.mm.ss"
@@ -212,10 +249,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             catch { showError("保存失败", detail: error.localizedDescription) }
         }
         saving = false
+        longReview?.showWindow(nil)
         windows.forEach { $0.orderFrontRegardless() }
         windows.first(where: { ($0.contentView as? CaptureCanvas)?.selection != nil })?.makeKeyAndOrderFront(nil)
     }
     private func dismissCaptures() {
+        let review = longReview; longReview = nil; review?.close()
         for window in windows { window.orderOut(nil); window.close() }
         windows.removeAll()
         returnFocusIfNeeded()
@@ -236,9 +275,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     private func showError(_ message: String, detail: String) {
         let alert = NSAlert(); alert.messageText = message; alert.informativeText = detail
+        let reviewVisible = longReview?.window?.isVisible == true
+        if reviewVisible { longReview?.window?.orderOut(nil) }
         let visible = windows.filter { $0.isVisible }
         visible.forEach { $0.orderOut(nil) }
         NSApp.activate(ignoringOtherApps: true); alert.runModal()
+        if reviewVisible { longReview?.showWindow(nil) }
         visible.forEach { $0.orderFrontRegardless() }
         visible.first(where: { ($0.contentView as? CaptureCanvas)?.selection != nil })?.makeKeyAndOrderFront(nil)
     }

@@ -8,6 +8,8 @@
 
 从 [Releases](https://github.com/xiangyingchang/macshot-simple/releases) 下载对应芯片的 `.dmg`：Apple Silicon（M1/M2/M3/M4 等）或 Intel。在“关于本机”中查看芯片类型。打开磁盘映像，将应用拖入 Applications。
 
+0.2.0 安装包约 **1.32 MB（Apple Silicon）/ 1.33 MB（Intel）**。
+
 开发预览包采用临时签名，**未经苹果公证**。首次打开可能被系统阻止；可在系统设置 → 隐私与安全性中查看“仍要打开”。不要关闭系统安全保护。最低部署目标为 macOS 12.3，旧系统和 Apple Silicon 真机运行仍待验证。
 
 **目前仅支持 macOS，没有 Windows 版本。** Windows 需要单独移植截图、界面和快捷键实现。
@@ -30,7 +32,15 @@
 
 多屏分别显示截图画布，选区限制在单个屏幕。保留原始屏幕像素分辨率；尺寸标签显示输出像素。
 
-不包含录屏、上传、账号、历史记录、OCR、翻译、长截图、贴图、美化、自动更新或独立图片编辑器。交互参考常见聊天工具，不承诺与微信或飞书完全一致。
+不包含录屏、上传、账号、历史记录、OCR、翻译、贴图、美化、自动更新或独立图片编辑器。交互参考常见聊天工具，不承诺与微信或飞书完全一致。
+
+## 长截图（0.2.0）
+
+需要 macOS 14 或以上。框选可滚动内容，尚未标注时点工具栏的“长截图”，等待浮动条提示准备完成，然后向下滚动，无需每次停顿。持续采集并缓存中间画面；避免一次跳过整屏，相邻捕获画面仍需至少约四分之一重叠。点“完成”后，在可滚动长图中标注、复制或保存。
+
+macOS 26 需要在选区上方或下方为浮动条留出约 60 点空白。建议避开导航栏、悬浮按钮和视频。软件会尝试保留固定页头/页脚一次，复杂动态内容和重复图案可能无法匹配；单帧未匹配会先自动重试，持续约 0.8 秒才提示回退；提示时向上回退到已捕获的位置再继续。支持 1 像素小幅滚动，并容忍少量局部画面变化。向上滚动不追加内容。最大高度 20,000 像素、面积 4,000 万像素。无法继续时保留已成功拼接部分，窗口标题标明未完成原因。
+
+不自动滚动，不增加辅助功能权限；截图在内存中拼接。0.2.0 预览安装包已提供下载。方案和调研见 [docs/LONG-CAPTURE.md](docs/LONG-CAPTURE.md)。
 
 ## 构建
 
@@ -68,7 +78,7 @@ SIMPLE_SIGNING_IDENTITY='你的签名身份' scripts/build-simple.sh
 scripts/run-tests.sh
 ```
 
-测试不需要屏幕录制权限，覆盖选区坐标、Retina 裁剪、标注渲染、马赛克、撤销重做、三档粗细和工具栏外观。真实系统授权、快捷键手感、输入法和多屏操作需要手工体验。
+0.2.0 已通过 40 项 Release 模式测试及双架构构建。测试不需要屏幕录制权限，覆盖选区坐标、Retina 裁剪、标注渲染、马赛克、撤销重做、三档粗细和工具栏外观。真实系统授权、快捷键手感、输入法和多屏操作需要手工体验。
 
 退出正在运行的应用后，可执行本地截图诊断：
 
@@ -81,6 +91,8 @@ scripts/run-tests.sh
 ## 代码结构
 
 - `Capture/ScreenCaptureManager.swift`：沿用并收紧上游截图引擎，保留新旧系统路径。
+- `Capture/ScrollCaptureSession.swift`、`ScrollFrameStream.swift`、`ScrollStitcher.swift`：连续选区采集、有界缓存、兼容路径和长图拼接。
+- `UI/LongCaptureReview.swift`：可滚动长图标注与输出。
 - `Model/CaptureGeometry.swift`：选区、窗口坐标和像素裁剪。
 - `Model/Annotation.swift`：六种标注、渲染和撤销记录。
 - `UI/CaptureCanvas.swift`：框选、鼠标交互和系统文字编辑器。
@@ -91,4 +103,4 @@ scripts/run-tests.sh
 
 ## 开源与致谢
 
-本项目是 MacShot 的修改版本，与上游独立维护。保留上游作者 sw33tLie 的署名及 GPL-3.0 许可证。基于上游的代码仍按原许可证使用；当前图标为 MacShot Simple 新设计，详见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。当前为 0.1.2 开发试用版，已公开源码；尚未提供经过苹果公证的安装包。问题反馈请使用 [GitHub Issues](https://github.com/xiangyingchang/macshot-simple/issues)，安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。
+本项目是 MacShot 的修改版本，与上游独立维护。保留上游作者 sw33tLie 的署名及 GPL-3.0 许可证。基于上游的代码仍按原许可证使用；当前图标为 MacShot Simple 新设计，详见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。当前为 0.2.0 开发预览版，已公开源码；尚未提供经过苹果公证的安装包。问题反馈请使用 [GitHub Issues](https://github.com/xiangyingchang/macshot-simple/issues)，安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。

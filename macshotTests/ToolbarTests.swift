@@ -8,7 +8,7 @@ final class ToolbarTests: XCTestCase {
             let toolbar = CaptureToolbar(frame: .zero)
             toolbar.onWidth = { value in SimpleSettings.saveWidth(value, for: .rectangle) }
             toolbar.update(tool: .rectangle, width: 4, colorIndex: 5, fontSize: 18, canUndo: false, canRedo: false)
-            XCTAssertEqual(toolbar.buttons.count, 11); XCTAssertEqual(toolbar.widthButtons.count, 3)
+            XCTAssertEqual(toolbar.buttons.count, 12); XCTAssertEqual(toolbar.widthButtons.count, 3)
             for (index, width) in SimpleSettings.widths.enumerated() {
                 toolbar.widthButtons[index].performClick(nil)
                 XCTAssertEqual(SimpleSettings.strokeWidth(for: .rectangle), width)

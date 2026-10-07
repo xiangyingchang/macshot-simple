@@ -44,6 +44,11 @@ final class AnnotationTests: XCTestCase {
         XCTAssertGreaterThan(abs(Fixture.color(base, x: 40, y: 50).redComponent - Fixture.color(base, x: 41, y: 50).redComponent), 0.9)
         XCTAssertEqual(Fixture.color(image, x: 0, y: 0).redComponent, Fixture.color(base, x: 0, y: 0).redComponent, accuracy: 0.01)
     }
+    func testFailedMosaicPreventsExportOfUnredactedPixels() {
+        let annotation = Annotation(tool:.pixelate,points:[NSPoint(x:300,y:300),NSPoint(x:350,y:350)],color:.red,width:8)
+        // An invalid mosaic crop must fail the whole render, not skip redaction.
+        XCTAssertNil(AnnotationRenderer.render(base:Fixture.image(),canvas:NSSize(width:200,height:100),annotations:[annotation]))
+    }
     func testMosaicIncludesEarlierAnnotationPixels() throws {
         let base = Fixture.image()
         let mark = Annotation(tool: .rectangle, points: [NSPoint(x: 30, y: 20), NSPoint(x: 60, y: 80)], color: .red, width: 12)

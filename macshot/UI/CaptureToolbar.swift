@@ -1,7 +1,7 @@
 // MacShot Simple, GPL-3.0. Modified 2026-10-07.
 import Cocoa
 
-enum ToolbarAction { case tool(AnnotationTool), undo, redo, save, cancel, copy }
+enum ToolbarAction { case tool(AnnotationTool), undo, redo, scroll, save, cancel, copy }
 
 /// Native button tracking provides press/release cancellation and keyboard
 /// activation; custom drawing only controls the small floating chrome.
@@ -156,20 +156,21 @@ final class CaptureToolbar: NSView {
     }
     override func mouseDown(with event: NSEvent) {}
 
-    func update(tool: AnnotationTool?, width: CGFloat, colorIndex: Int, fontSize: CGFloat, canUndo: Bool, canRedo: Bool) {
+    func update(tool: AnnotationTool?, width: CGFloat, colorIndex: Int, fontSize: CGFloat, canUndo: Bool, canRedo: Bool, canScroll: Bool = true) {
         self.tool = tool
         mainRow.subviews.forEach { $0.removeFromSuperview() }; optionsRow.subviews.forEach { $0.removeFromSuperview() }
         buttons.removeAll(); widthButtons.removeAll()
-        let actions = AnnotationTool.allCases.map { ToolbarAction.tool($0) } + [.undo, .redo, .save, .cancel, .copy]
+        let actions = AnnotationTool.allCases.map { ToolbarAction.tool($0) } + [.undo, .redo, .scroll, .save, .cancel, .copy]
         var x: CGFloat = 8
         mainRow.dividers.removeAll()
         for (index, action) in actions.enumerated() {
-            if index == 6 || index == 9 { mainRow.dividers.append(x + 4); x += 12 }
+            if index == 6 || index == 10 { mainRow.dividers.append(x + 4); x += 12 }
             let button = ToolbarButton(frame: NSRect(x: x, y: 4, width: 36, height: 36))
             switch action {
             case .tool(let item): button.tool = item; button.toolTip = item.title; button.chosen = tool == item
             case .undo: button.symbol = "arrow.uturn.backward"; button.toolTip = "撤销 · ⌘Z"; button.isEnabled = canUndo
             case .redo: button.symbol = "arrow.uturn.forward"; button.toolTip = "重做 · ⇧⌘Z"; button.isEnabled = canRedo
+            case .scroll: button.symbol = "rectangle.expand.vertical"; button.toolTip = "长截图 · 手动向下滚动"; button.isEnabled = canScroll
             case .save: button.symbol = "square.and.arrow.down"; button.toolTip = "保存 PNG · ⌘S"
             case .cancel: button.symbol = "xmark"; button.toolTip = "取消 · Esc"; button.tint = DesignTheme.red
             case .copy: button.symbol = "checkmark"; button.toolTip = "复制并完成 · Enter"; button.tint = DesignTheme.green; button.completion = true
@@ -230,9 +231,10 @@ final class CaptureToolbar: NSView {
 }
 
 final class ActionButton: FeedbackButton {
+    var tint = DesignTheme.ink
     override func draw(_ dirtyRect: NSRect) {
         drawFeedback()
-        let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 16, weight: .regular), .foregroundColor: isEnabled ? DesignTheme.ink : DesignTheme.muted]
+        let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 16, weight: .regular), .foregroundColor: isEnabled ? tint : DesignTheme.muted]
         let size = (title as NSString).size(withAttributes: attributes)
         (title as NSString).draw(at: NSPoint(x: bounds.midX - size.width / 2, y: bounds.midY - size.height / 2), withAttributes: attributes)
     }

@@ -14,6 +14,9 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     private var renderedImage: CGImage?
     private var textView: NSTextView?
     let toolbar = CaptureToolbar(frame: .zero)
+    var locksSelection = false
+    var onToolbarLayout: (() -> Void)?
+    var onScroll: ((NSRect) -> Void)?
     var onSelected: (() -> Void)?
     var onCancel: (() -> Void)?
     var onCopy: ((CGImage) -> Void)?
@@ -89,7 +92,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         window?.makeFirstResponder(self)
         if let selection {
             if event.clickCount == 2 && activeTool == nil && selection.contains(point) { perform(.copy); return }
-            if let index = CaptureGeometry.handles(for: selection).firstIndex(where: { abs($0.x - point.x) <= 8 && abs($0.y - point.y) <= 8 }) {
+            if !locksSelection, let index = CaptureGeometry.handles(for: selection).firstIndex(where: { abs($0.x - point.x) <= 8 && abs($0.y - point.y) <= 8 }) {
                 gesture = .resize(index, selection); toolbar.isHidden = true; return
             }
             if selection.contains(point) {
@@ -99,9 +102,10 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
                         pending = Annotation(tool: tool, points: [point, point], color: SimpleSettings.palette[SimpleSettings.colorIndex], width: SimpleSettings.strokeWidth(for: tool))
                         gesture = .annotate
                     }
-                } else { gesture = .move(point, selection); toolbar.isHidden = true }
+                } else if !locksSelection { gesture = .move(point, selection); toolbar.isHidden = true }
                 return
             }
+            if locksSelection { return }
             resetSelection()
         }
         gesture = .select(point)
@@ -146,6 +150,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     }
 
     override func rightMouseDown(with event: NSEvent) {
+        if locksSelection { return }
         if selection != nil {
             resetSelection(); refreshPreview(at: convert(event.locationInWindow, from: nil))
         } else { onCancel?() }
@@ -178,6 +183,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             guard selection != nil else { return }
             guard let image = outputImage() else { onFailure?(); return }
             onCopy?(image)
+        case .scroll:
+            if !locksSelection, history.annotations.isEmpty, let selection { onScroll?(selection) }
         case .save:
             guard selection != nil else { return }
             guard let image = outputImage() else { onFailure?(); return }
@@ -189,7 +196,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     func updateToolbar() {
         guard let selection else { return }
         toolbar.update(tool: activeTool, width: SimpleSettings.strokeWidth(for: activeTool ?? .rectangle), colorIndex: SimpleSettings.colorIndex,
-                       fontSize: SimpleSettings.fontSize, canUndo: !history.annotations.isEmpty, canRedo: !history.undone.isEmpty)
+                       fontSize: SimpleSettings.fontSize, canUndo: !history.annotations.isEmpty, canRedo: !history.undone.isEmpty, canScroll: !locksSelection && history.annotations.isEmpty)
         // Scale only on unusually narrow displays; hit targets transform with the view.
         let natural = toolbar.frame.size
         let scale = min(1, max(0.1, (bounds.width - 16) / natural.width))
@@ -199,6 +206,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         toolbar.optionsAbove = placement.optionsAbove
         toolbar.frame = NSRect(origin: placement.origin, size: visible)
         toolbar.bounds = NSRect(origin: .zero, size: natural)
+        onToolbarLayout?()
     }
 
     private func invalidateImage() { renderedImage = nil; needsDisplay = true }

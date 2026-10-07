@@ -4,7 +4,6 @@ import Cocoa
 enum AnnotationTool: Int, CaseIterable {
     case rectangle, ellipse, arrow, pencil, pixelate, text
     var title: String { ["矩形", "椭圆", "箭头", "画笔", "马赛克", "文字"][rawValue] }
-    var symbol: String { ["rectangle", "oval", "arrow.up.right", "pencil", "checkerboard.rectangle", "t.square"][rawValue] }
 }
 
 struct Annotation {
@@ -41,12 +40,14 @@ enum AnnotationRenderer {
                                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
         context.draw(base, in: CGRect(x: 0, y: 0, width: base.width, height: base.height))
         context.scaleBy(x: CGFloat(base.width) / canvas.width, y: CGFloat(base.height) / canvas.height)
-        for annotation in annotations { draw(annotation, in: context, canvas: canvas, pixelSize: NSSize(width: base.width, height: base.height)) }
+        for annotation in annotations {
+            guard draw(annotation, in: context, canvas: canvas, pixelSize: NSSize(width:base.width,height:base.height)) else { return nil }
+        }
         return context.makeImage()
     }
 
-    private static func draw(_ annotation: Annotation, in context: CGContext, canvas: NSSize, pixelSize: NSSize) {
-        guard let first = annotation.points.first, let last = annotation.points.last else { return }
+    private static func draw(_ annotation: Annotation, in context: CGContext, canvas: NSSize, pixelSize: NSSize) -> Bool {
+        guard let first = annotation.points.first, let last = annotation.points.last else { return false }
         context.saveGState()
         defer { context.restoreGState() }
         context.setStrokeColor(annotation.color.cgColor)
@@ -78,10 +79,10 @@ enum AnnotationRenderer {
             } else { (annotation.text as NSString).draw(at: first, withAttributes: attributes) }
             NSGraphicsContext.restoreGraphicsState()
         case .pixelate:
-            guard annotation.rect.width >= 1, annotation.rect.height >= 1,
-                  let composite = context.makeImage() else { return }
+            guard annotation.rect.width >= 1, annotation.rect.height >= 1 else { return true }
+            guard let composite = context.makeImage() else { return false }
             let rect = CaptureGeometry.pixelRect(annotation.rect, canvas: canvas, image: composite)
-            guard !rect.isEmpty, let crop = composite.cropping(to: rect) else { return }
+            guard !rect.isEmpty, let crop = composite.cropping(to: rect) else { return false }
             let target = NSRect(x: rect.minX * canvas.width / pixelSize.width,
                                 y: canvas.height - rect.maxY * canvas.height / pixelSize.height,
                                 width: rect.width * canvas.width / pixelSize.width,
@@ -89,12 +90,13 @@ enum AnnotationRenderer {
             let cell = max(6, annotation.width * 2)
             let w = max(1, Int(target.width / cell)), h = max(1, Int(target.height / cell))
             guard let tiny = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
-                                       space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
+                                       space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
             tiny.interpolationQuality = .low
             tiny.draw(crop, in: CGRect(x: 0, y: 0, width: w, height: h))
-            guard let blocks = tiny.makeImage() else { return }
+            guard let blocks = tiny.makeImage() else { return false }
             context.interpolationQuality = .none
             context.draw(blocks, in: target)
         }
+        return true
     }
 }

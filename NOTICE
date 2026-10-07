@@ -11,7 +11,10 @@ Modifications dated 2026-10-07:
   beautification, standalone editors and third-party dependencies.
 - Minimal settings, portable build scripts, tests and documentation.
 - Original screenshot-selection app icon replacing the upstream icon.
+- Manual vertical scrolling capture and scrollable annotation review.
+- Retained pixel-layout and frozen-row analysis from upstream ScrollFrameAnalyzer.
 
-The screenshot engine and keyboard layout handling derive from upstream.
+The screenshot engine, keyboard layout handling and ScrollFrameAnalyzer derive
+from upstream.
 The current app icon was created for MacShot Simple. This project is independently maintained and is not an official MacShot,
 WeChat or Feishu release. No WeChat or Feishu assets are included.

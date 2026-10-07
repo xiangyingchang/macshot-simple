@@ -4,11 +4,13 @@
 
 A small macOS menu bar app for screenshots and basic annotations. Derived from [sw33tLie/macshot v4.3.0](https://github.com/sw33tLie/macshot/tree/v4.3.0), built with Swift, AppKit and system capture APIs. No third-party dependencies.
 
-Version 0.1.2 is a development preview. Source and macOS preview downloads are available; notarized installers are not available yet. The interface currently uses Chinese labels.
+Version 0.2.0 is a development preview. Source and macOS preview downloads are available; notarized installers are not available yet. The interface currently uses Chinese labels.
 
 ## Download and install
 
 Download the matching `.dmg` from [Releases](https://github.com/xiangyingchang/macshot-simple/releases): Apple Silicon (M-series) or Intel. Check About This Mac for your chip. Open the disk image and drag the app into Applications.
+
+Version 0.2.0 installers are approximately **1.32 MB (Apple Silicon) / 1.33 MB (Intel)**.
 
 Preview packages are ad hoc signed and **not notarized**. macOS may block first opening; review Open Anyway in System Settings → Privacy & Security. Do not disable system security. The deployment target is macOS 12.3, but older systems and Apple Silicon device runtime acceptance remain unverified.
 
@@ -32,7 +34,15 @@ Six tools: rectangle, ellipse, arrow, pencil, pixelate and text. Three stroke wi
 
 Each display has its own canvas; a selection stays on one display. Output preserves the original screenshot pixel resolution, without downscaling. The size label reports output pixels. On a 2× Retina display, a 500 × 300 point region produces approximately 1000 × 600 pixels, with crop edges rounded to pixel boundaries. PNG export is lossless.
 
-No recording, uploads, accounts, history, OCR, translation, scrolling capture, pinned screenshots, beautification, automatic updates or standalone image editor. Interaction is inspired by common chat screenshot tools; exact WeChat or Feishu parity is not claimed.
+No recording, uploads, accounts, history, OCR, translation, pinned screenshots, beautification, automatic updates or standalone image editor. Interaction is inspired by common chat screenshot tools; exact WeChat or Feishu parity is not claimed.
+
+## Long screenshots (0.2.0)
+
+Requires macOS 14+. Select a scrollable region before adding annotations, click the long screenshot button, wait until ready, then scroll downward without pausing after each movement. Continuous capture buffers intermediate frames; avoid jumping a full viewport, as adjacent captured frames still need roughly one quarter overlap. Click Finish to annotate the scrollable result, copy, or save.
+
+On macOS 26, leave roughly 60 points above or below the selection for the floating controls. Avoid sticky controls, navigation bars and video when possible. Basic fixed headers/footers are retained once; complex dynamic or repeating content may not match. Single-frame mismatches are retried; recovery guidance appears after about 0.8 seconds of persistent failure. Roll back to captured content if prompted. One-pixel movements and small local visual changes are supported. Upward scrolling adds nothing. Limits: 20,000 pixels tall and 40 million pixels total. A partial result is preserved and its title states the reason when capture cannot continue.
+
+No automatic scrolling or added Accessibility permission. Stitching stays in memory. Preview downloads for 0.2.0 are available. See [the plan and research](docs/LONG-CAPTURE.md).
 
 ## Build
 
@@ -67,7 +77,7 @@ The build script does not install, publish or change system permissions. Ad hoc 
 scripts/run-tests.sh
 ```
 
-Headless tests cover selection geometry, Retina cropping, annotation raster output, pixelation, undo/redo, stroke choices and toolbar appearance. The local 0.1.1 validation passed 22 tests and a universal Release build. An actual screen capture diagnostic also succeeded. This does not establish manual mouse/IME acceptance, chat paste behavior, real multi-display behavior, or runtime compatibility on every supported macOS version and Apple Silicon device. See [RELEASE-READINESS.md](RELEASE-READINESS.md).
+Headless tests cover selection geometry, Retina cropping, annotation raster output, pixelation, undo/redo, stroke choices and toolbar appearance. Version 0.2.0 passed 40 Release-mode tests and a universal build. A controlled native text window with continuous variable-speed scrolling also passed. This does not establish manual mouse/IME acceptance, chat paste behavior, real multi-display behavior, or runtime compatibility on every supported macOS version and Apple Silicon device. See [RELEASE-READINESS.md](RELEASE-READINESS.md).
 
 After quitting the running app, an optional local capture diagnostic is available:
 
@@ -80,6 +90,8 @@ It captures screens, renders annotations and encodes PNG/TIFF in memory. It prin
 ## Source layout
 
 - `macshot/Capture/ScreenCaptureManager.swift`: upstream-derived capture engine, with compatibility paths.
+- `macshot/Capture/ScrollCaptureSession.swift`, `ScrollFrameStream.swift`, `ScrollStitcher.swift`: continuous region capture, bounded buffers, fallback and stitching.
+- `macshot/UI/LongCaptureReview.swift`: scrollable long-image annotations and export.
 - `macshot/Model/CaptureGeometry.swift`: selection geometry and pixel cropping.
 - `macshot/Model/Annotation.swift`: six tools, rendering and undo history.
 - `macshot/UI/CaptureCanvas.swift`: selection gestures and native text editing.
