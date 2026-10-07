@@ -5,7 +5,7 @@ import hashlib
 import zipfile
 
 root = Path(__file__).resolve().parent.parent
-output = root / "dist" / "MacShot-Simple-0.1.1-source.zip"
+output = root / "dist" / "MacShot-Simple-0.1.2-source.zip"
 output.parent.mkdir(exist_ok=True)
 files = ["README.md", "README.en.md", "LICENSE", "NOTICE", "PRIVACY.md", "CONTRIBUTING.md", "SECURITY.md",
          "CHANGELOG.md", "DESIGN.md", "AGENTS.md", "CLAUDE.md", ".gitignore", "RELEASE-READINESS.md"]

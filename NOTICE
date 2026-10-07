@@ -10,7 +10,8 @@ Modifications dated 2026-10-07:
 - Removed recording, uploads, accounts, history, OCR, translation, scrolling,
   beautification, standalone editors and third-party dependencies.
 - Minimal settings, portable build scripts, tests and documentation.
+- Original screenshot-selection app icon replacing the upstream icon.
 
-The screenshot engine, keyboard layout handling and app icon assets derive from
-upstream. This project is independently maintained and is not an official MacShot,
+The screenshot engine and keyboard layout handling derive from upstream.
+The current app icon was created for MacShot Simple. This project is independently maintained and is not an official MacShot,
 WeChat or Feishu release. No WeChat or Feishu assets are included.

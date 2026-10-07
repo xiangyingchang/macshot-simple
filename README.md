@@ -91,4 +91,4 @@ scripts/run-tests.sh
 
 ## 开源与致谢
 
-本项目是 MacShot 的修改版本，与上游独立维护。保留上游作者 sw33tLie 的署名及 GPL-3.0 许可证。基于上游的代码和图标资源仍按原许可证使用，详见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。当前为 0.1.1 开发试用版，已公开源码；尚未提供经过苹果公证的安装包。问题反馈请使用 [GitHub Issues](https://github.com/xiangyingchang/macshot-simple/issues)，安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。
+本项目是 MacShot 的修改版本，与上游独立维护。保留上游作者 sw33tLie 的署名及 GPL-3.0 许可证。基于上游的代码仍按原许可证使用；当前图标为 MacShot Simple 新设计，详见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。当前为 0.1.2 开发试用版，已公开源码；尚未提供经过苹果公证的安装包。问题反馈请使用 [GitHub Issues](https://github.com/xiangyingchang/macshot-simple/issues)，安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。

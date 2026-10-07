@@ -2,7 +2,7 @@
 # Build and package ad hoc signed macOS previews. Does not publish or install.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-version=0.1.1
+version=0.1.2
 release_build="${SIMPLE_BUILD_ROOT:-$PWD/build/release-$version}"
 SIMPLE_ARCHS='arm64 x86_64' SIMPLE_BUILD_ROOT="$release_build" scripts/build-simple.sh
 app="$release_build/Build/Products/Release/MacShot Simple.app"
@@ -27,7 +27,7 @@ for arch in arm64 x86_64; do
   ln -s /Applications "$stage/Applications"
   cp LICENSE NOTICE "$stage/"
   cat > "$stage/INSTALL.txt" <<'TEXT'
-MacShot Simple 0.1.1 — macOS development preview
+MacShot Simple 0.1.2 — macOS development preview
 
 中文：拖动 MacShot Simple.app 到 Applications。首次打开后，在系统设置允许屏幕录制。
 默认快捷键为 Command+Shift+X，可在菜单栏设置中修改。

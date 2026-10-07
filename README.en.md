@@ -4,7 +4,7 @@
 
 A small macOS menu bar app for screenshots and basic annotations. Derived from [sw33tLie/macshot v4.3.0](https://github.com/sw33tLie/macshot/tree/v4.3.0), built with Swift, AppKit and system capture APIs. No third-party dependencies.
 
-Version 0.1.1 is a development preview. Source and macOS preview downloads are available; notarized installers are not available yet. The interface currently uses Chinese labels.
+Version 0.1.2 is a development preview. Source and macOS preview downloads are available; notarized installers are not available yet. The interface currently uses Chinese labels.
 
 ## Download and install
 
@@ -94,4 +94,4 @@ Screenshots stay on your Mac. The app has no upload feature, network client enti
 
 Report bugs through [Issues](https://github.com/xiangyingchang/macshot-simple/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for contributions and [SECURITY.md](SECURITY.md) for private security reports.
 
-This is an independently maintained modification of MacShot, licensed under GPL-3.0. Upstream author sw33tLie and contributors retain their attribution. The capture engine, keyboard layout handling and app icon assets derive from upstream. See [LICENSE](LICENSE) and [NOTICE](NOTICE). This is not an official MacShot, WeChat or Feishu release.
+This is an independently maintained modification of MacShot, licensed under GPL-3.0. Upstream author sw33tLie and contributors retain their attribution. The capture engine and keyboard layout handling derive from upstream. The current app icon was created for MacShot Simple. See [LICENSE](LICENSE) and [NOTICE](NOTICE). This is not an official MacShot, WeChat or Feishu release.

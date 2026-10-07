@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 — 2026-10-07 (new app icon)
+
+Original minimal screenshot-selection icon replaces the upstream shutter icon.
+Off-white tile, charcoal corner brackets and a green selection handle.
+All macOS icon sizes updated; screenshot behavior and permissions unchanged.
+
 ## 0.1.1 — 2026-10-07 (design refinement)
 
 Consistent outline icons, restrained paper surfaces and clear selected/hover/press states.
