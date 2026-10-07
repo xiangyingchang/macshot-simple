@@ -4,7 +4,15 @@
 
 A small macOS menu bar app for screenshots and basic annotations. Derived from [sw33tLie/macshot v4.3.0](https://github.com/sw33tLie/macshot/tree/v4.3.0), built with Swift, AppKit and system capture APIs. No third-party dependencies.
 
-Version 0.1.1 is a development preview. Source is public; a notarized installer is not available yet. The interface currently uses Chinese labels.
+Version 0.1.1 is a development preview. Source and macOS preview downloads are available; notarized installers are not available yet. The interface currently uses Chinese labels.
+
+## Download and install
+
+Download the matching `.dmg` from [Releases](https://github.com/xiangyingchang/macshot-simple/releases): Apple Silicon (M-series) or Intel. Check About This Mac for your chip. Open the disk image and drag the app into Applications.
+
+Preview packages are ad hoc signed and **not notarized**. macOS may block first opening; review Open Anyway in System Settings → Privacy & Security. Do not disable system security. The deployment target is macOS 12.3, but older systems and Apple Silicon device runtime acceptance remain unverified.
+
+**macOS only. There is no Windows build.** Windows requires a separate port of capture, UI and hotkey implementations.
 
 ## Use
 

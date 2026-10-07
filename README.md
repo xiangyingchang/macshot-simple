@@ -4,6 +4,14 @@
 
 一个只做截图和简单标注的 macOS 菜单栏应用。基于 [sw33tLie/macshot v4.3.0](https://github.com/sw33tLie/macshot/tree/v4.3.0) 精简，采用 AppKit 和系统截图 API，无第三方依赖。
 
+## 下载与安装
+
+从 [Releases](https://github.com/xiangyingchang/macshot-simple/releases) 下载对应芯片的 `.dmg`：Apple Silicon（M1/M2/M3/M4 等）或 Intel。在“关于本机”中查看芯片类型。打开磁盘映像，将应用拖入 Applications。
+
+开发预览包采用临时签名，**未经苹果公证**。首次打开可能被系统阻止；可在系统设置 → 隐私与安全性中查看“仍要打开”。不要关闭系统安全保护。最低部署目标为 macOS 12.3，旧系统和 Apple Silicon 真机运行仍待验证。
+
+**目前仅支持 macOS，没有 Windows 版本。** Windows 需要单独移植截图、界面和快捷键实现。
+
 ## 使用
 
 1. 打开应用，在系统设置中允许 MacShot Simple 录制屏幕。

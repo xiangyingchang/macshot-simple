@@ -55,11 +55,14 @@ final class ToolbarTests: XCTestCase {
         let check = ToolbarButton(frame: NSRect(x: 0, y: 0, width: 36, height: 36))
         check.symbol = "checkmark"; check.tint = DesignTheme.green
         let checkTip = try pixel(check, NSPoint(x: 26, y: 25))
-        XCTAssertGreaterThan(checkTip.alphaComponent, 0.8)
+        // Edge coverage varies with backing scale and rasterization on CI.
+        XCTAssertGreaterThan(checkTip.alphaComponent, 0.5)
+        XCTAssertLessThan(try pixel(check, NSPoint(x: 26, y: 11)).alphaComponent, 0.2)
         XCTAssertLessThan(checkTip.redComponent, 0.2)
         let text = ToolbarButton(frame: check.frame); text.tool = .text
         let textCap = try pixel(text, NSPoint(x: 15, y: 22))
-        XCTAssertGreaterThan(textCap.alphaComponent, 0.8)
+        XCTAssertGreaterThan(textCap.alphaComponent, 0.5)
+        XCTAssertLessThan(try pixel(text, NSPoint(x: 15, y: 14)).alphaComponent, 0.2)
         XCTAssertLessThan(textCap.redComponent, 0.5)
     }
 
