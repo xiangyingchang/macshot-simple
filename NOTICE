@@ -1,0 +1,16 @@
+MacShot Simple is a modified version of MacShot v4.3.0.
+Upstream: https://github.com/sw33tLie/macshot/tree/v4.3.0
+Original author: sw33tLie and upstream contributors.
+License: GNU General Public License version 3 (see LICENSE).
+
+Modifications dated 2026-10-07:
+- Screenshot-only lifecycle, selection canvas, six-tool annotation model and toolbar.
+- Fixed stroke choices and simple color palette.
+- Retained screenshot capture paths and keyboard layout handling from upstream.
+- Removed recording, uploads, accounts, history, OCR, translation, scrolling,
+  beautification, standalone editors and third-party dependencies.
+- Minimal settings, portable build scripts, tests and documentation.
+
+The screenshot engine, keyboard layout handling and app icon assets derive from
+upstream. This project is independently maintained and is not an official MacShot,
+WeChat or Feishu release. No WeChat or Feishu assets are included.
