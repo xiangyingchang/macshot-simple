@@ -9,12 +9,14 @@ final class CaptureWindow: NSWindow {
     override var canBecomeMain: Bool { false }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem?
     private let hotkey = HotkeyManager()
     private var windows: [CaptureWindow] = []
     private var previousApp: NSRunningApplication?
     private var capturing = false
+    private var statusMenuIsOpen = false
+    private var captureAfterStatusMenuCloses = false
     private var saving = false
     private var scrollSession: AnyObject?
     private var longReview: LongCaptureReview?
@@ -34,7 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         buildMainMenu()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem?.button?.image = NSImage(systemSymbolName: "viewfinder", accessibilityDescription: "MacShot Simple")
-        hotkey.onCapture = { [weak self] in self?.startCapture() }
+        hotkey.onCapture = { [weak self] in self?.captureFromHotkey() }
         registerHotkey()
         updateStatusMenu()
     }
@@ -59,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateStatusMenu() {
         let menu = NSMenu()
+        menu.delegate = self
         let capture = NSMenuItem(title: "截图  \(SimpleSettings.hotkeyDescription)", action: #selector(captureFromMenu), keyEquivalent: "")
         capture.target = self; menu.addItem(capture)
         let settings = NSMenuItem(title: "设置快捷键…", action: #selector(showPreferences), keyEquivalent: "")
@@ -76,7 +79,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func captureFromMenu() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in self?.startCapture() }
+        captureAfterStatusMenuCloses = true
+    }
+
+    private func captureFromHotkey() {
+        guard statusMenuIsOpen else { startCapture(); return }
+        captureAfterStatusMenuCloses = true
+        statusItem?.menu?.cancelTrackingWithoutAnimation()
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        guard menu === statusItem?.menu else { return }
+        statusMenuIsOpen = true
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        guard let statusMenu = statusItem?.menu,
+              menu === statusMenu else { return }
+        statusMenuIsOpen = false
+        guard captureAfterStatusMenuCloses else { return }
+        captureAfterStatusMenuCloses = false
+        DispatchQueue.main.async { [weak self] in self?.startCapture() }
+    }
+
+    func menu(_ menu: NSMenu,
+              hasKeyEquivalentFor event: NSEvent,
+              target: AutoreleasingUnsafeMutablePointer<AnyObject?>,
+              action: UnsafeMutablePointer<Selector?>) -> Bool {
+        guard statusMenuIsOpen, menu === statusItem?.menu else { return false }
+        let shortcut = SimpleSettings.hotkey
+        guard SimpleSettings.matchesHotkey(event, key: shortcut.key, modifiers: shortcut.modifiers) else { return false }
+        target.pointee = self
+        action.pointee = #selector(captureFromMenu)
+        return true
     }
     private func registerHotkey() {
         let key = SimpleSettings.hotkey

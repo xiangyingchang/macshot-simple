@@ -54,4 +54,7 @@ enum SimpleSettings {
         if flags.contains(.control) { value |= UInt32(controlKey) }
         return value
     }
+    static func matchesHotkey(_ event: NSEvent, key: UInt32, modifiers: UInt32) -> Bool {
+        UInt32(event.keyCode) == key && carbonModifiers(event.modifierFlags) == modifiers
+    }
 }
