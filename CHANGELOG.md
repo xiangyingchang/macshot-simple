@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — 2026-10-11 (hotkey and About window)
+
+Keep the global screenshot shortcut responsive while the status menu is open.
+Make About a nonmodal panel so screenshot selection remains usable while it is shown.
+Release as a macOS preview for Apple Silicon and Intel, with source and checksums.
+
 ## 0.2.0 — 2026-10-07 (long screenshot preview)
 
 Manual vertical long screenshots (macOS 14+), continuous region capture, an eight-frame
