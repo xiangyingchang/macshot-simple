@@ -127,3 +127,11 @@ macOS 14+ 可使用长截图，macOS 26 的控制条需留在选区外（约 60 
 - [x] 两个 DMG 的 hdiutil 完整性及应用签名验证通过；SHA256SUMS 与源码 ZIP 校验通过。
 - [x] Apple Silicon DMG 1,325,643 字节，Intel DMG 1,343,065 字节；源码 ZIP 约 1.42 MB。使用 Apple Development 证书签名，未经苹果公证。
 - [ ] 菜单打开时触发快捷键、关于面板打开时自由调整截图选区，仍需在用户实际桌面手工体验；自动化测试不能替代该验收。
+
+### 0.2.2 菜单与截图面板优化（2026-10-12）
+
+- [x] 44 项 Release 模式测试通过（0 失败、0 跳过）；脚本语法和 `git diff --check` 通过。
+- [x] arm64 + x86_64 通用 Release 构建通过；Apple Silicon 和 Intel DMG 分别只含目标架构，包内版本为 0.2.2（build 8）。
+- [x] 两个 DMG 的应用签名验证及 `hdiutil` 完整性验证通过；源码 ZIP 完整性及三项 SHA-256 校验通过。
+- [x] Apple Silicon DMG 1,331,104 字节，Intel DMG 1,350,462 字节；源码 ZIP 约 1.42 MB。DMG 使用 Apple Development 证书签名，未经苹果公证。
+- [ ] 菜单或关于面板打开时触发快捷键并完成截图，仍需在用户实际桌面手工体验；自动化测试不能替代该验收。

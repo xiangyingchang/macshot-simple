@@ -16,6 +16,14 @@ final class CaptureGeometryTests: XCTestCase {
             XCTAssertEqual(CaptureGeometry.windowRect(cg, primaryHeight: 900, screenFrame: frame), NSRect(x: 100, y: 620, width: 300, height: 200))
         }
     }
+    func testPanelFrameMapsToLocalScreenCoordinatesAndClips() {
+        let screen = NSRect(x: 1440, y: -200, width: 1920, height: 1080)
+        XCTAssertEqual(
+            CaptureGeometry.localScreenRect(NSRect(x: 1400, y: -100, width: 120, height: 80), screenFrame: screen),
+            NSRect(x: 0, y: 100, width: 80, height: 80)
+        )
+        XCTAssertNil(CaptureGeometry.localScreenRect(NSRect(x: 0, y: 0, width: 100, height: 100), screenFrame: screen))
+    }
     func testMoveAndAllResizeHandlesStayInScreen() {
         let bounds = NSRect(x: 0, y: 0, width: 800, height: 600)
         let rect = NSRect(x: 100, y: 100, width: 200, height: 150)

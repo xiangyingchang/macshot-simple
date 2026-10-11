@@ -2,7 +2,7 @@
 # Build and package macOS previews. Does not publish or install.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-version=0.2.1
+version=0.2.2
 release_build="${SIMPLE_BUILD_ROOT:-$PWD/build/release-$version}"
 signing_identity="${SIMPLE_SIGNING_IDENTITY:--}"
 SIMPLE_ARCHS='arm64 x86_64' SIMPLE_BUILD_ROOT="$release_build" scripts/build-simple.sh

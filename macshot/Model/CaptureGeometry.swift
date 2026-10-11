@@ -47,6 +47,14 @@ enum CaptureGeometry {
                width: cgRect.width, height: cgRect.height)
     }
 
+    static func localScreenRect(_ rect: NSRect, screenFrame: NSRect) -> NSRect? {
+        let clipped = rect.intersection(screenFrame)
+        guard !clipped.isNull, !clipped.isEmpty else { return nil }
+        return NSRect(x: clipped.minX - screenFrame.minX,
+                      y: clipped.minY - screenFrame.minY,
+                      width: clipped.width, height: clipped.height)
+    }
+
     static func toolbarOrigin(selection: NSRect, size: NSSize, bounds: NSRect) -> NSPoint {
         toolbarPlacement(selection: selection, size: size, reservedHeight: size.height, bounds: bounds).origin
     }

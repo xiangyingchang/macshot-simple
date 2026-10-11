@@ -6,6 +6,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     private var gesture: Gesture = .none
     let baseImage: CGImage
     var windowRects: [NSRect]
+    private let undimmedRects: [NSRect]
     private(set) var selection: NSRect?
     private(set) var preview: NSRect?
     private(set) var history = AnnotationHistory()
@@ -25,9 +26,10 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     private var tracking: NSTrackingArea?
     override var acceptsFirstResponder: Bool { true }
 
-    init(frame: NSRect, image: CGImage, windowRects: [NSRect]) {
+    init(frame: NSRect, image: CGImage, windowRects: [NSRect], undimmedRects: [NSRect] = []) {
         self.baseImage = image
         self.windowRects = windowRects
+        self.undimmedRects = undimmedRects
         super.init(frame: frame)
         addSubview(toolbar)
         toolbar.isHidden = true
@@ -225,12 +227,22 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     override func draw(_ dirtyRect: NSRect) {
         guard let context = NSGraphicsContext.current?.cgContext else { return }
-        context.draw(composite() ?? baseImage, in: bounds)
+        let image = composite() ?? baseImage
+        context.draw(image, in: bounds)
         let highlight = selection ?? preview
         let mask = NSBezierPath(rect: bounds)
         if let highlight { mask.append(NSBezierPath(rect: highlight)) }
         mask.windingRule = .evenOdd
         NSColor.black.withAlphaComponent(0.5).setFill(); mask.fill()
+        // Preserve the captured appearance of open app chrome above the dim layer.
+        for rect in undimmedRects {
+            let clipped = rect.intersection(bounds)
+            guard !clipped.isNull, !clipped.isEmpty else { continue }
+            context.saveGState()
+            context.clip(to: clipped)
+            context.draw(image, in: bounds)
+            context.restoreGState()
+        }
         guard let highlight, !highlight.isEmpty else { return }
         SimpleSettings.green.setStroke()
         let border = NSBezierPath(rect: highlight); border.lineWidth = 2; border.stroke()

@@ -15,6 +15,28 @@ final class CaptureCanvasTests: XCTestCase {
         view.mouseUp(with: Fixture.event(.leftMouseUp, x: 150, y: 150))
         XCTAssertEqual(view.selection, rect); XCTAssertFalse(view.toolbar.isHidden)
     }
+    func testUndimmedPanelPixelsStayAtCapturedBrightness() throws {
+        let view = CaptureCanvas(
+            frame: NSRect(x: 0, y: 0, width: 200, height: 100),
+            image: Fixture.image(width: 200, height: 100),
+            windowRects: [],
+            undimmedRects: [NSRect(x: 50, y: 25, width: 60, height: 50)]
+        )
+        let bitmap = try XCTUnwrap(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+        view.cacheDisplay(in: view.bounds, to: bitmap)
+
+        let scaleX = CGFloat(bitmap.pixelsWide) / view.bounds.width
+        let scaleY = CGFloat(bitmap.pixelsHigh) / view.bounds.height
+        let outside = try XCTUnwrap(bitmap.colorAt(x: Int(20 * scaleX), y: Int(50 * scaleY)))
+            .usingColorSpace(.deviceRGB)
+        let inside = try XCTUnwrap(bitmap.colorAt(x: Int(80 * scaleX), y: Int(50 * scaleY)))
+            .usingColorSpace(.deviceRGB)
+        let dimmedBrightness = try XCTUnwrap(outside).redComponent
+        let preservedBrightness = try XCTUnwrap(inside).redComponent
+        XCTAssertLessThan(dimmedBrightness, 0.75)
+        XCTAssertGreaterThan(preservedBrightness, 0.9)
+        XCTAssertGreaterThan(preservedBrightness - dimmedBrightness, 0.2)
+    }
     func testEmptyDesktopClickDoesNotSelectFullScreen() {
         let view = canvas()
         view.mouseDown(with: Fixture.event(.leftMouseDown, x: 150, y: 150))

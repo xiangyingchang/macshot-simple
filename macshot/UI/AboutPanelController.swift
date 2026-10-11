@@ -13,6 +13,9 @@ final class AboutPanelController: NSWindowController, NSWindowDelegate {
         panel.title = "关于 MacShot Simple"
         panel.isReleasedWhenClosed = false
         panel.hidesOnDeactivate = false
+        panel.appearance = NSAppearance(named: .aqua)
+        panel.backgroundColor = DesignTheme.paper
+        panel.isOpaque = true
         super.init(window: panel)
         panel.delegate = self
         panel.contentView = makeContentView(version: version)
@@ -38,6 +41,8 @@ final class AboutPanelController: NSWindowController, NSWindowDelegate {
 
     private func makeContentView(version: String) -> NSView {
         let content = NSView(frame: NSRect(x: 0, y: 0, width: 420, height: 190))
+        content.wantsLayer = true
+        content.layer?.backgroundColor = DesignTheme.paper.cgColor
         let stack = NSStackView()
         stack.orientation = .vertical
         stack.alignment = .leading

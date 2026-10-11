@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 — 2026-10-12 (menu and capture stability)
+
+Keep the status menu compact and aligned with the About panel's opaque light surface.
+Starting a screenshot from the global hotkey leaves the open menu or About panel in place,
+without dimming its captured pixels. Keep the About panel light and consistent with the menu.
+
 ## 0.2.1 — 2026-10-11 (hotkey and About window)
 
 Keep the global screenshot shortcut responsive while the status menu is open.

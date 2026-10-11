@@ -39,7 +39,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         statusItem?.button?.image = NSImage(systemSymbolName: "viewfinder", accessibilityDescription: "MacShot Simple")
         statusItem?.button?.target = self
         statusItem?.button?.action = #selector(toggleStatusPopover)
-        hotkey.onCapture = { [weak self] in self?.requestCapture() }
+        hotkey.onCapture = { [weak self] in
+            self?.requestCapture(fromHotkey: true)
+        }
         registerHotkey()
         updateStatusPopover()
     }
@@ -74,6 +76,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         )
         let popover = NSPopover()
         popover.behavior = .transient
+        // Match the opaque paper surface used by the capture toolbar instead
+        // of letting the desktop tint the default translucent popover.
+        popover.appearance = NSAppearance(named: .aqua)
         popover.delegate = self
         popover.contentViewController = controller
         popover.contentSize = controller.preferredContentSize
@@ -97,14 +102,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     private func closeStatusPopover() {
-        guard statusPopover?.isShown == true else { return }
-        statusPopover?.performClose(nil)
+        guard let popover = statusPopover, popover.isShown else { return }
+        popover.performClose(nil)
     }
 
-    private func requestCapture() {
+    private var canStartCapture: Bool {
+        !capturing && !saving && windows.isEmpty && scrollSession == nil && longReview == nil
+            && preferences?.window?.isVisible != true
+    }
+
+    private func requestCapture(fromHotkey: Bool = false) {
+        guard canStartCapture else { return }
         let appToRestore = appBeforeStatusPopover ?? previousApp ?? frontmostAppExcludingSelf()
-        closeStatusPopover()
-        aboutPanel?.close()
+        if fromHotkey, let popover = statusPopover, popover.isShown {
+            // Keep the open menu fixed while capture windows take over the screen.
+            popover.behavior = .applicationDefined
+        } else {
+            closeStatusPopover()
+        }
+        if !fromHotkey { aboutPanel?.close() }
         if preferences?.window?.isVisible == true { preferences?.window?.close() }
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
@@ -176,7 +192,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     }
 
     func startCapture() {
-        guard !capturing, !saving, windows.isEmpty, scrollSession == nil, longReview == nil, preferences?.window?.isVisible != true else { return }
+        guard canStartCapture else { return }
         capturing = true
         if previousApp == nil || previousApp?.processIdentifier == ProcessInfo.processInfo.processIdentifier {
             previousApp = frontmostAppExcludingSelf()
@@ -198,7 +214,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                     _ = CGRequestScreenCaptureAccess()
                     self.showPermissionHelp()
                 } else { self.showError("截图失败", detail: "屏幕暂时无法读取，请稍后重试。") }
-                self.returnFocusIfNeeded(); return
+                self.returnFocusIfNeeded()
+                self.restoreStatusPopoverBehavior()
+                return
             }
             self.showCaptures(captures, windowInfo: windowInfo)
         }
@@ -206,8 +224,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private func showCaptures(_ captures: [ScreenCapture], windowInfo: [[String: Any]]) {
         let primaryHeight = NSScreen.screens.first?.frame.maxY ?? captures[0].screen.frame.maxY
+        let preservedWindows = [aboutPanel?.window, statusPopover?.contentViewController?.view.window]
+            .compactMap { $0 }
+            .filter(\.isVisible)
         for capture in captures {
             let frame = capture.screen.frame
+            let undimmedRects = preservedWindows.compactMap {
+                CaptureGeometry.localScreenRect($0.frame, screenFrame: frame)
+            }
             let rects = windowInfo.compactMap { info -> NSRect? in
                 guard (info[kCGWindowOwnerPID as String] as? Int32) != ProcessInfo.processInfo.processIdentifier,
                       (info[kCGWindowLayer as String] as? Int) == 0,
@@ -222,7 +246,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
             window.hidesOnDeactivate = false; window.isReleasedWhenClosed = false
             window.isOpaque = true; window.hasShadow = false; window.acceptsMouseMovedEvents = true
-            let canvas = CaptureCanvas(frame: NSRect(origin: .zero, size: frame.size), image: capture.image, windowRects: rects)
+            let canvas = CaptureCanvas(
+                frame: NSRect(origin: .zero, size: frame.size),
+                image: capture.image,
+                windowRects: rects,
+                undimmedRects: undimmedRects
+            )
             window.contentView = canvas
             canvas.onSelected = { [weak self, weak canvas] in
                 guard let self else { return }
@@ -318,6 +347,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         for window in windows { window.orderOut(nil); window.close() }
         windows.removeAll()
         returnFocusIfNeeded()
+        restoreStatusPopoverBehavior()
+    }
+    private func restoreStatusPopoverBehavior() {
+        guard let popover = statusPopover, popover.isShown else { return }
+        popover.behavior = .transient
     }
     private func returnFocusIfNeeded() {
         guard preferences?.window?.isVisible != true else { return }
