@@ -54,6 +54,24 @@ enum SimpleSettings {
         if flags.contains(.control) { value |= UInt32(controlKey) }
         return value
     }
+    static func menuModifierFlags(forCarbonModifiers modifiers: UInt32) -> NSEvent.ModifierFlags {
+        var flags: NSEvent.ModifierFlags = []
+        if modifiers & UInt32(cmdKey) != 0 { flags.insert(.command) }
+        if modifiers & UInt32(shiftKey) != 0 { flags.insert(.shift) }
+        if modifiers & UInt32(optionKey) != 0 { flags.insert(.option) }
+        if modifiers & UInt32(controlKey) != 0 { flags.insert(.control) }
+        return flags
+    }
+
+    static func menuKeyEquivalent(for key: UInt32) -> String {
+        KeyboardShortcutMatcher.currentLayoutCharacter(for: key) ?? ""
+    }
+
+    static func configureMenuShortcut(for item: NSMenuItem, key: UInt32, modifiers: UInt32) {
+        item.keyEquivalent = menuKeyEquivalent(for: key)
+        item.keyEquivalentModifierMask = menuModifierFlags(forCarbonModifiers: modifiers)
+    }
+
     static func matchesHotkey(_ event: NSEvent, key: UInt32, modifiers: UInt32) -> Bool {
         UInt32(event.keyCode) == key && carbonModifiers(event.modifierFlags) == modifiers
     }

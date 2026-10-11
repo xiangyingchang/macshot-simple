@@ -62,7 +62,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func updateStatusMenu() {
         let menu = NSMenu()
         menu.delegate = self
-        let capture = NSMenuItem(title: "截图  \(SimpleSettings.hotkeyDescription)", action: #selector(captureFromMenu), keyEquivalent: "")
+        let shortcut = SimpleSettings.hotkey
+        let keyEquivalent = SimpleSettings.menuKeyEquivalent(for: shortcut.key)
+        let captureTitle = keyEquivalent.isEmpty ? "截图  \(SimpleSettings.hotkeyDescription)" : "截图"
+        let capture = NSMenuItem(title: captureTitle, action: #selector(captureFromMenu), keyEquivalent: "")
+        SimpleSettings.configureMenuShortcut(for: capture, key: shortcut.key, modifiers: shortcut.modifiers)
         capture.target = self; menu.addItem(capture)
         let settings = NSMenuItem(title: "设置快捷键…", action: #selector(showPreferences), keyEquivalent: "")
         settings.target = self; menu.addItem(settings)
@@ -79,7 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func captureFromMenu() {
-        captureAfterStatusMenuCloses = true
+        captureFromHotkey()
     }
 
     private func captureFromHotkey() {
@@ -106,7 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
               hasKeyEquivalentFor event: NSEvent,
               target: AutoreleasingUnsafeMutablePointer<AnyObject?>,
               action: UnsafeMutablePointer<Selector?>) -> Bool {
-        guard statusMenuIsOpen, menu === statusItem?.menu else { return false }
+        guard menu === statusItem?.menu else { return false }
         let shortcut = SimpleSettings.hotkey
         guard SimpleSettings.matchesHotkey(event, key: shortcut.key, modifiers: shortcut.modifiers) else { return false }
         target.pointee = self
