@@ -9,14 +9,15 @@ final class CaptureWindow: NSWindow {
     override var canBecomeMain: Bool { false }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var statusItem: NSStatusItem?
+    private var statusPopover: NSPopover?
+    private var appBeforeStatusPopover: NSRunningApplication?
+    private var aboutPanel: AboutPanelController?
     private let hotkey = HotkeyManager()
     private var windows: [CaptureWindow] = []
     private var previousApp: NSRunningApplication?
     private var capturing = false
-    private var statusMenuIsOpen = false
-    private var captureAfterStatusMenuCloses = false
     private var saving = false
     private var scrollSession: AnyObject?
     private var longReview: LongCaptureReview?
@@ -36,9 +37,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         buildMainMenu()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem?.button?.image = NSImage(systemSymbolName: "viewfinder", accessibilityDescription: "MacShot Simple")
-        hotkey.onCapture = { [weak self] in self?.captureFromHotkey() }
+        statusItem?.button?.target = self
+        statusItem?.button?.action = #selector(toggleStatusPopover)
+        hotkey.onCapture = { [weak self] in self?.requestCapture() }
         registerHotkey()
-        updateStatusMenu()
+        updateStatusPopover()
     }
     func applicationWillTerminate(_ notification: Notification) { hotkey.unregister() }
 
@@ -59,63 +62,61 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.mainMenu = main
     }
 
-    private func updateStatusMenu() {
-        let menu = NSMenu()
-        menu.delegate = self
-        let shortcut = SimpleSettings.hotkey
-        let keyEquivalent = SimpleSettings.menuKeyEquivalent(for: shortcut.key)
-        let captureTitle = keyEquivalent.isEmpty ? "截图  \(SimpleSettings.hotkeyDescription)" : "截图"
-        let capture = NSMenuItem(title: captureTitle, action: #selector(captureFromMenu), keyEquivalent: "")
-        SimpleSettings.configureMenuShortcut(for: capture, key: shortcut.key, modifiers: shortcut.modifiers)
-        capture.target = self; menu.addItem(capture)
-        let settings = NSMenuItem(title: "设置快捷键…", action: #selector(showPreferences), keyEquivalent: "")
-        settings.target = self; menu.addItem(settings)
-        let permission = NSMenuItem(title: "屏幕录制权限…", action: #selector(openPermissionSettings), keyEquivalent: "")
-        permission.target = self; menu.addItem(permission)
-        let about = NSMenuItem(title: "关于 MacShot Simple", action: #selector(showAbout), keyEquivalent: "")
-        // Keep About aligned with the other menu labels and avoid an empty row above it.
-        about.indentationLevel = 0
-        about.image = nil
-        about.target = self; menu.addItem(about)
-        menu.addItem(.separator())
-        menu.addItem(withTitle: "退出", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
-        statusItem?.menu = menu
+    private func updateStatusPopover() {
+        closeStatusPopover()
+        let controller = StatusPopoverController(
+            hotkeyDescription: SimpleSettings.hotkeyDescription,
+            onCapture: { [weak self] in self?.requestCapture() },
+            onSettings: { [weak self] in self?.showPreferences() },
+            onPermissionSettings: { [weak self] in self?.openPermissionSettings() },
+            onAbout: { [weak self] in self?.showAbout() },
+            onQuit: { NSApp.terminate(nil) }
+        )
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.delegate = self
+        popover.contentViewController = controller
+        popover.contentSize = controller.preferredContentSize
+        statusPopover = popover
     }
 
-    @objc private func captureFromMenu() {
-        captureFromHotkey()
+    @objc private func toggleStatusPopover() {
+        guard let button = statusItem?.button, let popover = statusPopover else { return }
+        if popover.isShown {
+            popover.performClose(nil)
+        } else {
+            appBeforeStatusPopover = frontmostAppExcludingSelf()
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
     }
 
-    private func captureFromHotkey() {
-        guard statusMenuIsOpen else { startCapture(); return }
-        captureAfterStatusMenuCloses = true
-        statusItem?.menu?.cancelTrackingWithoutAnimation()
+    func popoverDidClose(_ notification: Notification) {
+        guard let popover = notification.object as? NSPopover,
+              popover === statusPopover else { return }
+        appBeforeStatusPopover = nil
     }
 
-    func menuWillOpen(_ menu: NSMenu) {
-        guard menu === statusItem?.menu else { return }
-        statusMenuIsOpen = true
+    private func closeStatusPopover() {
+        guard statusPopover?.isShown == true else { return }
+        statusPopover?.performClose(nil)
     }
 
-    func menuDidClose(_ menu: NSMenu) {
-        guard let statusMenu = statusItem?.menu,
-              menu === statusMenu else { return }
-        statusMenuIsOpen = false
-        guard captureAfterStatusMenuCloses else { return }
-        captureAfterStatusMenuCloses = false
-        DispatchQueue.main.async { [weak self] in self?.startCapture() }
+    private func requestCapture() {
+        let appToRestore = appBeforeStatusPopover ?? previousApp ?? frontmostAppExcludingSelf()
+        closeStatusPopover()
+        aboutPanel?.close()
+        if preferences?.window?.isVisible == true { preferences?.window?.close() }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.previousApp = appToRestore
+            self.startCapture()
+        }
     }
 
-    func menu(_ menu: NSMenu,
-              hasKeyEquivalentFor event: NSEvent,
-              target: AutoreleasingUnsafeMutablePointer<AnyObject?>,
-              action: UnsafeMutablePointer<Selector?>) -> Bool {
-        guard menu === statusItem?.menu else { return false }
-        let shortcut = SimpleSettings.hotkey
-        guard SimpleSettings.matchesHotkey(event, key: shortcut.key, modifiers: shortcut.modifiers) else { return false }
-        target.pointee = self
-        action.pointee = #selector(captureFromMenu)
-        return true
+    private func frontmostAppExcludingSelf() -> NSRunningApplication? {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return nil }
+        return app
     }
     private func registerHotkey() {
         let key = SimpleSettings.hotkey
@@ -126,15 +127,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func showPreferences() {
         guard windows.isEmpty, !capturing, scrollSession == nil, longReview == nil else { return }
+        let appToRestore = appBeforeStatusPopover ?? frontmostAppExcludingSelf()
+        closeStatusPopover()
         if preferences?.window?.isVisible == true {
             NSApp.activate(ignoringOtherApps: true); preferences?.showWindow(nil); return
         }
-        previousApp = NSWorkspace.shared.frontmostApplication
+        previousApp = appToRestore
         preferences = PreferencesController { [weak self] key, mods in
             guard let self else { return }
             let old = SimpleSettings.hotkey
             if self.hotkey.register(key: key, modifiers: mods) == noErr {
-                SimpleSettings.saveHotkey(key: key, modifiers: mods); self.updateStatusMenu()
+                SimpleSettings.saveHotkey(key: key, modifiers: mods); self.updateStatusPopover()
             } else {
                 _ = self.hotkey.register(key: old.key, modifiers: old.modifiers)
                 self.showError("这个快捷键无法使用", detail: "快捷键可能被其他应用占用，请换一个组合。")
@@ -146,41 +149,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func showAbout() {
+        let appToRestore = appBeforeStatusPopover ?? frontmostAppExcludingSelf()
+        closeStatusPopover()
         guard windows.isEmpty, !capturing, scrollSession == nil, longReview == nil else { return }
-        previousApp = NSWorkspace.shared.frontmostApplication
-        let alert = NSAlert()
-        alert.messageText = "MacShot Simple"
-        alert.informativeText = "简单截图与标注。\n基于 sw33tLie 的 MacShot v4.3.0 修改。\nGPL-3.0 开源许可证。\n版本 \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0")"
-        let projectLink = NSButton(title: "https://github.com/xiangyingchang/macshot-simple",
-                                   target: self, action: #selector(openProjectWebsite))
-        projectLink.isBordered = false
-        projectLink.bezelStyle = .inline
-        projectLink.alignment = .left
-        projectLink.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
-        projectLink.contentTintColor = .linkColor
-        projectLink.setAccessibilityLabel("打开 MacShot Simple 的 GitHub 仓库")
-        projectLink.sizeToFit()
-        let linkView = NSView(frame: NSRect(origin: .zero, size: NSSize(width: projectLink.frame.width, height: 22)))
-        projectLink.frame = linkView.bounds
-        linkView.addSubview(projectLink)
-        alert.accessoryView = linkView
-        NSApp.activate(ignoringOtherApps: true)
-        alert.runModal(); returnFocusIfNeeded()
-    }
-
-    @objc private func openProjectWebsite() {
-        guard let url = URL(string: "https://github.com/xiangyingchang/macshot-simple") else { return }
-        NSWorkspace.shared.open(url)
+        if let aboutPanel, aboutPanel.window?.isVisible == true {
+            NSApp.activate(ignoringOtherApps: true)
+            aboutPanel.window?.makeKeyAndOrderFront(nil)
+            return
+        }
+        previousApp = appToRestore
+        let controller = AboutPanelController(
+            version: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
+        )
+        aboutPanel = controller
+        controller.onClose = { [weak self, weak controller] in
+            guard let self, let controller, self.aboutPanel === controller else { return }
+            self.aboutPanel = nil
+            self.returnFocusIfNeeded()
+        }
+        controller.show()
     }
 
     @objc private func openPermissionSettings() {
+        closeStatusPopover()
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") { NSWorkspace.shared.open(url) }
     }
 
     func startCapture() {
         guard !capturing, !saving, windows.isEmpty, scrollSession == nil, longReview == nil, preferences?.window?.isVisible != true else { return }
         capturing = true
-        previousApp = NSWorkspace.shared.frontmostApplication
+        if previousApp == nil || previousApp?.processIdentifier == ProcessInfo.processInfo.processIdentifier {
+            previousApp = frontmostAppExcludingSelf()
+        }
         let immediate = ScreenCaptureManager.makeImmediateCaptureContext()
         let windowInfo = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
         Task { [weak self] in
