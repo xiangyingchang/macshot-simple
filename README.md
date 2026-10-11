@@ -56,17 +56,19 @@ scripts/build-simple.sh
 open 'build/Build/Products/Release/MacShot Simple.app'
 ```
 
-默认本机架构、临时签名。Intel 和 Apple Silicon 通用构建：
+默认使用本机架构和临时签名。设置 `SIMPLE_SIGNING_IDENTITY` 环境变量后，会使用对应的开发者证书。Intel 和 Apple Silicon 通用构建：
 
 ```sh
 SIMPLE_ARCHS='arm64 x86_64' scripts/build-simple.sh
 ```
 
-使用自己的开发者证书签名：
+用自己的开发者证书签名：
 
 ```sh
 SIMPLE_SIGNING_IDENTITY='你的签名身份' scripts/build-simple.sh
 ```
+
+制作 DMG 时也使用同一签名身份：`SIMPLE_SIGNING_IDENTITY='你的签名身份' scripts/package-release.sh`。不设置时安装包使用临时签名，macOS 可能把每次构建识别为新的应用并再次要求屏幕录制权限。正式公开发行应使用稳定的 Developer ID 身份并完成公证。
 
 也可用 Xcode 打开 `macshot.xcodeproj`，选择 `macshot` scheme，设置自己的签名团队。应用标识默认为 `local.macshot.simple`；正式公开发行前选择自己的标识。改变应用标识或签名身份可能需要重新授予屏幕录制权限。
 

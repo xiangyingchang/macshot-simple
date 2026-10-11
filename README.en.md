@@ -55,7 +55,7 @@ scripts/build-simple.sh
 open 'build/Build/Products/Release/MacShot Simple.app'
 ```
 
-The default build uses the local architecture and ad hoc signing. To build for Intel and Apple Silicon:
+By default, builds use the local architecture and ad hoc signing. Set `SIMPLE_SIGNING_IDENTITY` to sign with a developer certificate. To build for Intel and Apple Silicon:
 
 ```sh
 SIMPLE_ARCHS='arm64 x86_64' scripts/build-simple.sh
@@ -66,6 +66,8 @@ To sign with your own developer certificate:
 ```sh
 SIMPLE_SIGNING_IDENTITY='Your signing identity' scripts/build-simple.sh
 ```
+
+Use the same identity when packaging DMGs: `SIMPLE_SIGNING_IDENTITY='Your signing identity' scripts/package-release.sh`. Without it, packages use ad hoc signing; macOS may treat each build as a new app and request Screen Recording permission again. Public releases should use a stable Developer ID identity and notarization.
 
 Alternatively, open `macshot.xcodeproj` in Xcode, select the `macshot` scheme and configure your signing team. The default bundle identifier is `local.macshot.simple`; choose your own for distribution. Changing the identifier or signing identity may require granting Screen Recording permission again.
 
