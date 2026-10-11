@@ -65,9 +65,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settings.target = self; menu.addItem(settings)
         let permission = NSMenuItem(title: "屏幕录制权限…", action: #selector(openPermissionSettings), keyEquivalent: "")
         permission.target = self; menu.addItem(permission)
-        menu.addItem(.separator())
         let about = NSMenuItem(title: "关于 MacShot Simple", action: #selector(showAbout), keyEquivalent: "")
+        // Keep About aligned with the other menu labels and avoid an empty row above it.
+        about.indentationLevel = 0
+        about.image = nil
         about.target = self; menu.addItem(about)
+        menu.addItem(.separator())
         menu.addItem(withTitle: "退出", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         statusItem?.menu = menu
     }
@@ -109,8 +112,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let alert = NSAlert()
         alert.messageText = "MacShot Simple"
         alert.informativeText = "简单截图与标注。\n基于 sw33tLie 的 MacShot v4.3.0 修改。\nGPL-3.0 开源许可证。\n版本 \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0")"
+        let projectLink = NSButton(title: "https://github.com/xiangyingchang/macshot-simple",
+                                   target: self, action: #selector(openProjectWebsite))
+        projectLink.isBordered = false
+        projectLink.bezelStyle = .inline
+        projectLink.alignment = .left
+        projectLink.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+        projectLink.contentTintColor = .linkColor
+        projectLink.setAccessibilityLabel("打开 MacShot Simple 的 GitHub 仓库")
+        projectLink.sizeToFit()
+        let linkView = NSView(frame: NSRect(origin: .zero, size: NSSize(width: projectLink.frame.width, height: 22)))
+        projectLink.frame = linkView.bounds
+        linkView.addSubview(projectLink)
+        alert.accessoryView = linkView
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal(); returnFocusIfNeeded()
+    }
+
+    @objc private func openProjectWebsite() {
+        guard let url = URL(string: "https://github.com/xiangyingchang/macshot-simple") else { return }
+        NSWorkspace.shared.open(url)
     }
 
     @objc private func openPermissionSettings() {
