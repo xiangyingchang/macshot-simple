@@ -30,7 +30,8 @@ Six tools: rectangle, ellipse, arrow, pencil, pixelate and text. Three stroke wi
 - `Enter`: copy and finish; while editing text, confirm text first. `Shift+Enter` inserts a newline.
 - `⌘C`: copy and finish. `⌘S`: save. `⌘Z` / `⌘⇧Z`: undo / redo. Native editing shortcuts apply while typing text.
 - Right-click: return to region selection, or exit if no region is selected.
-- Double-click the selection in selection mode: copy and finish.
+- With a selection, double-click anywhere on the current capture canvas to copy and finish, including in annotation mode. A newly opened empty text editor also allows double-click completion; existing text, editors where editing has started, and toolbar controls retain their own interactions (such as double-clicking to select a word).
+- Clicking outside preserves the selection; dragging from outside replaces it and clears existing annotations.
 
 Each display has its own canvas; a selection stays on one display. Output preserves the original screenshot pixel resolution, without downscaling. The size label reports output pixels. On a 2× Retina display, a 500 × 300 point region produces approximately 1000 × 600 pixels, with crop edges rounded to pixel boundaries. PNG export is lossless.
 

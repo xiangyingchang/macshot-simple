@@ -1,8 +1,29 @@
 // MacShot Simple, GPL-3.0. Modified 2026-10-07.
 import Cocoa
 
+/// Only the second click that lands in a newly created empty editor completes capture.
+/// Once editing starts, all native text selection and IME handling stay with NSTextView.
+private final class CaptureTextView: NSTextView {
+    var onInitialDoubleClick: ((NSEvent) -> Void)?
+
+    override func mouseDown(with event: NSEvent) {
+        let completion = onInitialDoubleClick
+        onInitialDoubleClick = nil
+        if event.clickCount == 2, string.isEmpty, !hasMarkedText(), let completion {
+            completion(event)
+            return
+        }
+        super.mouseDown(with: event)
+    }
+
+    override func didChangeText() {
+        onInitialDoubleClick = nil
+        super.didChangeText()
+    }
+}
+
 final class CaptureCanvas: NSView, NSTextViewDelegate {
-    private enum Gesture { case none, select(NSPoint), move(NSPoint, NSRect), resize(Int, NSRect), annotate }
+    private enum Gesture { case none, select(NSPoint), reselect(NSPoint), move(NSPoint, NSRect), resize(Int, NSRect), annotate }
     private var gesture: Gesture = .none
     let baseImage: CGImage
     var windowRects: [NSRect]
@@ -12,6 +33,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     private(set) var history = AnnotationHistory()
     private(set) var activeTool: AnnotationTool?
     private var pending: Annotation?
+    private var historyBeforePencilClick: AnnotationHistory?
     private var renderedImage: CGImage?
     private var textView: NSTextView?
     let toolbar = CaptureToolbar(frame: .zero)
@@ -85,15 +107,26 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         cancelText()
         selection = nil; preview = nil; activeTool = nil; pending = nil
         gesture = .none; history.clear(); renderedImage = nil
+        historyBeforePencilClick = nil
         toolbar.isHidden = true; needsDisplay = true
     }
 
     override func mouseDown(with event: NSEvent) {
         let point = CaptureGeometry.clamp(convert(event.locationInWindow, from: nil), to: bounds)
+        let previousHistory = historyBeforePencilClick
+        historyBeforePencilClick = nil
         commitText()
         window?.makeFirstResponder(self)
         if let selection {
-            if event.clickCount == 2 && activeTool == nil && selection.contains(point) { perform(.copy); return }
+            if event.clickCount == 2 {
+                // A pencil click can draw a dot; do not include the first click of completion.
+                if let previousHistory { history = previousHistory }
+                gesture = .none
+                pending = nil
+                invalidateImage()
+                perform(.copy)
+                return
+            }
             if !locksSelection, let index = CaptureGeometry.handles(for: selection).firstIndex(where: { abs($0.x - point.x) <= 8 && abs($0.y - point.y) <= 8 }) {
                 gesture = .resize(index, selection); toolbar.isHidden = true; return
             }
@@ -108,7 +141,10 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
                 return
             }
             if locksSelection { return }
-            resetSelection()
+            // Keep the selection through the first click of an outside double-click.
+            // Only a drag starts a replacement selection.
+            gesture = .reselect(point)
+            return
         }
         gesture = .select(point)
     }
@@ -116,6 +152,10 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     override func mouseDragged(with event: NSEvent) {
         let point = CaptureGeometry.clamp(convert(event.locationInWindow, from: nil), to: bounds)
         switch gesture {
+        case .reselect(let origin):
+            resetSelection()
+            gesture = .select(origin)
+            selection = CaptureGeometry.rect(from: origin, to: point)
         case .select(let origin): selection = CaptureGeometry.rect(from: origin, to: point); preview = nil
         case .move(let origin, let rect): selection = CaptureGeometry.move(rect, by: NSPoint(x: point.x - origin.x, y: point.y - origin.y), in: bounds)
         case .resize(let index, let rect): selection = CaptureGeometry.resize(rect, handle: index, to: point, in: bounds)
@@ -141,11 +181,14 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             }
         case .annotate:
             if let pending, pending.tool == .pencil || pending.rect.width >= 1 || pending.rect.height >= 1 {
+                if pending.tool == .pencil, pending.points.allSatisfy({ $0 == pending.points.first }) {
+                    historyBeforePencilClick = history
+                }
                 history.append(pending)
             }
             pending = nil; invalidateImage(); updateToolbar()
         case .move, .resize: toolbar.isHidden = false; updateToolbar()
-        case .none: break
+        case .none, .reselect: break
         }
         gesture = .none
         needsDisplay = true
@@ -173,6 +216,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     }
 
     func perform(_ action: ToolbarAction) {
+        historyBeforePencilClick = nil
         commitText()
         switch action {
         case .tool(let tool):
@@ -264,7 +308,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         let width = max(1, selection.maxX - point.x)
         let height = min(selection.height, max(30, SimpleSettings.fontSize * 3))
         let origin = NSPoint(x: point.x, y: max(selection.minY, point.y - height))
-        let editor = NSTextView(frame: NSRect(origin: origin, size: NSSize(width: width, height: height)))
+        let editor = CaptureTextView(frame: NSRect(origin: origin, size: NSSize(width: width, height: height)))
         editor.isRichText = false; editor.drawsBackground = false
         editor.font = .systemFont(ofSize: SimpleSettings.fontSize)
         editor.textColor = SimpleSettings.palette[SimpleSettings.colorIndex]
@@ -273,6 +317,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         editor.textContainer?.lineFragmentPadding = 0
         editor.isVerticallyResizable = false; editor.isHorizontallyResizable = false
         editor.allowsUndo = true; editor.delegate = self
+        editor.onInitialDoubleClick = { [weak self] event in self?.mouseDown(with: event) }
         addSubview(editor); textView = editor
         window?.makeFirstResponder(editor)
     }
