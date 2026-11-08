@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3 — 2026-11-09 (double-click copy anywhere)
+
+Double-click anywhere on the screenshot canvas to copy and finish, including outside the selection and while an annotation tool is active. Clicking outside the selection keeps it; dragging starts a new selection and clears annotations. Double-clicking existing text still selects the word, and marked (composing) text does not trigger a copy.
+
 ## 0.2.2 — 2026-10-12 (menu and capture stability)
 
 Keep the status menu compact and aligned with the About panel's opaque light surface.
