@@ -135,3 +135,13 @@ macOS 14+ 可使用长截图，macOS 26 的控制条需留在选区外（约 60 
 - [x] 两个 DMG 的应用签名验证及 `hdiutil` 完整性验证通过；源码 ZIP 完整性及三项 SHA-256 校验通过。
 - [x] Apple Silicon DMG 1,331,104 字节，Intel DMG 1,350,462 字节；源码 ZIP 约 1.42 MB。DMG 使用 Apple Development 证书签名，未经苹果公证。
 - [ ] 菜单或关于面板打开时触发快捷键并完成截图，仍需在用户实际桌面手工体验；自动化测试不能替代该验收。
+
+### 0.2.3 双击复制与稳定签名（2026-11-09）
+
+- [x] `scripts/run-tests.sh` 本机 56 项通过、0 失败；修正了 headless XCTest 合成鼠标事件的窗口路由。对已有文字的双击测试验证应用不抢占为复制，原生选词行为仍由 AppKit 处理。
+- [x] Release universal build 和 0.2.3 build 9 通过；Release 脚本拒绝 ad-hoc 签名，要求有效 Apple Development/Developer ID 身份，并核验 Apple Silicon 与 Intel 包的签名身份一致。
+- [x] Apple Silicon DMG 1,332,882 字节；Intel DMG 1,352,570 字节。两个 DMG 均通过 `hdiutil verify`，各自应用签名、稳定代码要求及目标架构验证通过；源码包和 `SHA256SUMS.txt` 随包提供。
+- [x] 本机 Intel Mac 已从 DMG 安装 0.2.3 build 9，并以同一 DMG 覆盖重装；前后可执行文件 SHA-256 一致。重装后 `--check-capture` 返回 `permissionPreflight=true`、`success=true`，1 个屏幕；诊断没有保存截图或改动剪贴板。
+- [x] 推送前本机测试、Release 构建、签名/DMG 校验及重装授权验收均完成；远端 CI 与 Release 状态以 GitHub workflow 和 Releases 页面回读为准。
+- [ ] 物理鼠标、中文输入法和多屏场景仍需手工验收；合成事件测试不替代该验收。
+- 限制：预览包使用 Apple Development 签名但尚未公证；首次打开可能仍需 Gatekeeper 手动允许。

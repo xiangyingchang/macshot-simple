@@ -8,9 +8,9 @@
 
 从 [Releases](https://github.com/xiangyingchang/macshot-simple/releases) 下载对应芯片的 `.dmg`：Apple Silicon（M1/M2/M3/M4 等）或 Intel。在“关于本机”中查看芯片类型。打开磁盘映像，将应用拖入 Applications。
 
-0.2.2 安装包约 **1.33 MB（Apple Silicon）/ 1.35 MB（Intel）**。
+0.2.3 安装包约 **1.33 MB（Apple Silicon）/ 1.35 MB（Intel）**。
 
-预览包使用 Apple 开发者证书签名，**未经苹果公证**。首次打开可能被系统阻止；可在系统设置 → 隐私与安全性中查看“仍要打开”。不要关闭系统安全保护。最低部署目标为 macOS 12.3，旧系统和 Apple Silicon 真机运行仍待验证。
+预览包使用稳定的 Apple Development 签名身份，**未经苹果公证**。首次打开可能被系统阻止；可在系统设置 → 隐私与安全性中查看“仍要打开”。不要关闭系统安全保护。MacShot Simple 只捕获屏幕、不录制系统音频。macOS 的屏幕录制授权依赖代码签名要求：切换签名身份可能需要重新授权一次；后续使用同一身份更新或重装可保留授权。最低部署目标为 macOS 12.3，旧系统和 Apple Silicon 真机运行仍待验证。
 
 **目前仅支持 macOS，没有 Windows 版本。** Windows 需要单独移植截图、界面和快捷键实现。
 
@@ -57,19 +57,25 @@ scripts/build-simple.sh
 open 'build/Build/Products/Release/MacShot Simple.app'
 ```
 
-默认使用本机架构和临时签名。设置 `SIMPLE_SIGNING_IDENTITY` 环境变量后，会使用对应的开发者证书。Intel 和 Apple Silicon 通用构建：
-
-```sh
-SIMPLE_ARCHS='arm64 x86_64' scripts/build-simple.sh
-```
-
-用自己的开发者证书签名：
+默认使用本机架构和临时（ad-hoc）签名，仅适合一次性本地调试；不同构建的代码哈希不同，macOS 可能把它们识别为不同应用并重新要求屏幕录制权限。需要可重复安装的签名版本时，设置 `SIMPLE_SIGNING_IDENTITY` 为同一个稳定的代码签名身份。
 
 ```sh
 SIMPLE_SIGNING_IDENTITY='你的签名身份' scripts/build-simple.sh
 ```
 
-制作 DMG 时也使用同一签名身份：`SIMPLE_SIGNING_IDENTITY='你的签名身份' scripts/package-release.sh`。不设置时安装包使用临时签名，macOS 可能把每次构建识别为新的应用并再次要求屏幕录制权限。正式公开发行应使用稳定的 Developer ID 身份并完成公证。
+Intel 和 Apple Silicon 通用构建：
+
+```sh
+SIMPLE_ARCHS='arm64 x86_64' SIMPLE_SIGNING_IDENTITY='你的签名身份' scripts/build-simple.sh
+```
+
+制作 DMG 时必须使用相同身份：
+
+```sh
+SIMPLE_SIGNING_IDENTITY='你的签名身份' scripts/package-release.sh
+```
+
+`package-release.sh` 要求当前钥匙串中有效、带 TeamIdentifier 的 Apple Development 或 Developer ID 身份；会拒绝未设置、无效或 ad-hoc 的签名，并核验两个架构包使用同一签名身份。同一身份通常可保留重装/更新后的屏幕录制授权；首次从 ad-hoc 切换到稳定身份时，可能需要重新授权一次。预览包尚未苹果公证，Gatekeeper 仍可能要求手动允许首次打开；正式公开发行应使用 Developer ID 并完成公证。
 
 也可用 Xcode 打开 `macshot.xcodeproj`，选择 `macshot` scheme，设置自己的签名团队。应用标识默认为 `local.macshot.simple`；正式公开发行前选择自己的标识。改变应用标识或签名身份可能需要重新授予屏幕录制权限。
 

@@ -10,6 +10,18 @@ jobs:
         with:
           persist-credentials: false
       - run: scripts/run-tests.sh
+      - name: Ensure release packaging rejects ad-hoc signing
+        run: |
+          set +e
+          output=$(SIMPLE_SIGNING_IDENTITY=- scripts/package-release.sh 2>&1)
+          status=$?
+          set -e
+          test "$status" -eq 2
+          case "$output" in
+            *"Refusing to create a release with an ad-hoc signature."*) ;;
+            *) printf '%s\n' "$output"; exit 1 ;;
+          esac
+          test ! -e dist/release-0.2.3
       - run: scripts/build-simple.sh
         env:
           SIMPLE_ARCHS: 'arm64 x86_64'

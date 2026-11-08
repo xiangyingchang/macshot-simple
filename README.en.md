@@ -4,15 +4,15 @@
 
 A small macOS menu bar app for screenshots and basic annotations. Derived from [sw33tLie/macshot v4.3.0](https://github.com/sw33tLie/macshot/tree/v4.3.0), built with Swift, AppKit and system capture APIs. No third-party dependencies.
 
-Version 0.2.2 is a development preview. Source and macOS preview downloads are available; notarized installers are not available yet. The interface currently uses Chinese labels.
+Version 0.2.3 is a development preview. Source and macOS preview downloads are available; notarized installers are not available yet. The interface currently uses Chinese labels.
 
 ## Download and install
 
 Download the matching `.dmg` from [Releases](https://github.com/xiangyingchang/macshot-simple/releases): Apple Silicon (M-series) or Intel. Check About This Mac for your chip. Open the disk image and drag the app into Applications.
 
-Version 0.2.2 installers are approximately **1.33 MB (Apple Silicon) / 1.35 MB (Intel)**.
+Version 0.2.3 installers are approximately **1.33 MB (Apple Silicon) / 1.35 MB (Intel)**.
 
-Preview packages are signed with an Apple Development certificate but **not notarized**. macOS may block first opening; review Open Anyway in System Settings → Privacy & Security. Do not disable system security. The deployment target is macOS 12.3, but older systems and Apple Silicon device runtime acceptance remain unverified.
+Preview packages use the stable Apple Development signing identity but are **not notarized**. macOS may block first opening; review Open Anyway in System Settings → Privacy & Security. Do not disable system security. MacShot Simple captures screens only and does not record system audio. macOS Screen Recording consent is tied to the code-signing requirement: switching signing identities may require one fresh grant; reinstalling or updating with the same identity should preserve it. The deployment target is macOS 12.3, but older systems and Apple Silicon device runtime acceptance remain unverified.
 
 **macOS only. There is no Windows build.** Windows requires a separate port of capture, UI and hotkey implementations.
 
@@ -56,19 +56,17 @@ scripts/build-simple.sh
 open 'build/Build/Products/Release/MacShot Simple.app'
 ```
 
-By default, builds use the local architecture and ad hoc signing. Set `SIMPLE_SIGNING_IDENTITY` to sign with a developer certificate. To build for Intel and Apple Silicon:
+The default `scripts/build-simple.sh` uses ad hoc signing and is for one-off local debugging only. An ad-hoc designated requirement is pinned to the binary's CDHash, so replacing it with a new build can invalidate Screen Recording consent.
 
-```sh
-SIMPLE_ARCHS='arm64 x86_64' scripts/build-simple.sh
-```
-
-To sign with your own developer certificate:
+Set `SIMPLE_SIGNING_IDENTITY` to the same stable identity for builds and release packages:
 
 ```sh
 SIMPLE_SIGNING_IDENTITY='Your signing identity' scripts/build-simple.sh
+SIMPLE_ARCHS='arm64 x86_64' SIMPLE_SIGNING_IDENTITY='Your signing identity' scripts/build-simple.sh
+SIMPLE_SIGNING_IDENTITY='Your signing identity' scripts/package-release.sh
 ```
 
-Use the same identity when packaging DMGs: `SIMPLE_SIGNING_IDENTITY='Your signing identity' scripts/package-release.sh`. Without it, packages use ad hoc signing; macOS may treat each build as a new app and request Screen Recording permission again. Public releases should use a stable Developer ID identity and notarization.
+`package-release.sh` requires a valid Apple Development or Developer ID identity with a TeamIdentifier in the current Keychain. It refuses missing, invalid or ad-hoc identities and verifies both architecture-specific apps use the same signing identity. Reinstalling or updating with the same identity should preserve Screen Recording consent; switching from ad hoc may require one fresh grant. Release packages are not notarized yet, so Gatekeeper may still require Open Anyway. Public distribution should use a stable Developer ID identity and notarization.
 
 Alternatively, open `macshot.xcodeproj` in Xcode, select the `macshot` scheme and configure your signing team. The default bundle identifier is `local.macshot.simple`; choose your own for distribution. Changing the identifier or signing identity may require granting Screen Recording permission again.
 
