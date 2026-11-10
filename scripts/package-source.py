@@ -2,10 +2,14 @@
 """Create a source-only archive; exclude builds, local notes and signing material."""
 from pathlib import Path
 import hashlib
+import re
 import zipfile
 
 root = Path(__file__).resolve().parent.parent
-output = root / "dist" / "MacShot-Simple-0.2.4-source.zip"
+# Read the version from the app target so release scripts cannot drift.
+project = (root / "macshot.xcodeproj" / "project.pbxproj").read_text()
+version = re.search(r"MARKETING_VERSION = (\d+\.\d+\.\d+);", project).group(1)
+output = root / "dist" / f"MacShot-Simple-{version}-source.zip"
 output.parent.mkdir(exist_ok=True)
 files = ["README.md", "README.en.md", "LICENSE", "NOTICE", "PRIVACY.md", "CONTRIBUTING.md", "SECURITY.md",
          "CHANGELOG.md", "DESIGN.md", "EXECUTION_PLAN.md", "PROJECT_PROGRESS.md", "AGENTS.md", "CLAUDE.md", ".gitignore", "RELEASE-READINESS.md"]

@@ -1,5 +1,6 @@
 // MacShot Simple, derived from MacShot v4.3.0 (sw33tLie), GPL-3.0.
-// Modified 2026-10-07: screenshot-only app, no network or recording features.
+// Modified 2026-10-07: screenshot-only app, no recording features.
+// Modified 2026-11-10: Sparkle update checks are the only network access.
 import Cocoa
 import Carbon
 import UniformTypeIdentifiers
@@ -30,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var scrollSession: AnyObject?
     private var longReview: LongCaptureReview?
     private var preferences: PreferencesController?
+    private let updates = UpdateController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -48,14 +50,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
         buildMainMenu()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem?.button?.image = NSImage(systemSymbolName: "viewfinder", accessibilityDescription: "MacShot Simple")
+        statusItem?.button?.image = StatusIcon.image(badged: false)
         statusItem?.button?.target = self
         statusItem?.button?.action = #selector(toggleStatusPopover)
         hotkey.onCapture = { [weak self] in
             self?.requestCapture(fromHotkey: true)
         }
         registerHotkey()
+        updates.onStateChange = { [weak self] state in
+            self?.updateStatusIcon(state)
+            self?.updateStatusPopover()
+        }
+        updates.onWillShowUpdateWindow = { [weak self] in
+            guard let self else { return }
+            if self.previousApp == nil { self.previousApp = self.appBeforeStatusPopover ?? self.frontmostAppExcludingSelf() }
+        }
+        updates.onSessionFinished = { [weak self] in
+            guard let self, self.canStartCapture else { return }
+            self.returnFocusIfNeeded()
+        }
+        updates.start()
         updateStatusPopover()
+    }
+
+    private func updateStatusIcon(_ state: UpdateState) {
+        statusItem?.button?.image = StatusIcon.image(badged: state.availableVersion != nil)
+        statusItem?.button?.setAccessibilityLabel(
+            state.availableVersion.map { "MacShot Simple，可升级到 \($0)" } ?? "MacShot Simple"
+        )
     }
     func applicationWillTerminate(_ notification: Notification) { hotkey.unregister() }
 
@@ -80,9 +102,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         closeStatusPopover()
         let controller = StatusPopoverController(
             hotkeyDescription: SimpleSettings.hotkeyDescription,
+            updateState: updates.state,
             onCapture: { [weak self] in self?.requestCapture() },
             onSettings: { [weak self] in self?.showPreferences() },
             onPermissionSettings: { [weak self] in self?.openPermissionSettings() },
+            onCheckUpdate: { [weak self] in self?.checkForUpdates() },
             onAbout: { [weak self] in self?.showAbout() },
             onQuit: { NSApp.terminate(nil) }
         )
@@ -161,7 +185,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             NSApp.activate(ignoringOtherApps: true); preferences?.showWindow(nil); return
         }
         previousApp = appToRestore
-        preferences = PreferencesController { [weak self] key, mods in
+        preferences = PreferencesController(
+            automaticallyChecksForUpdates: updates.automaticallyChecksForUpdates,
+            onShortcut: { [weak self] key, mods in
             guard let self else { return }
             let old = SimpleSettings.hotkey
             if self.hotkey.register(key: key, modifiers: mods) == noErr {
@@ -170,7 +196,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                 _ = self.hotkey.register(key: old.key, modifiers: old.modifiers)
                 self.showError("这个快捷键无法使用", detail: "快捷键可能被其他应用占用，请换一个组合。")
             }
-        }
+        },
+            onAutomaticUpdatesChange: { [weak self] enabled in self?.updates.automaticallyChecksForUpdates = enabled }
+        )
         preferences?.onClose = { [weak self] in self?.returnFocusIfNeeded() }
         NSApp.activate(ignoringOtherApps: true)
         preferences?.showWindow(nil)
@@ -196,6 +224,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             self.returnFocusIfNeeded()
         }
         controller.show()
+    }
+
+    private func checkForUpdates() {
+        guard windows.isEmpty, !capturing, !saving, scrollSession == nil, longReview == nil else { return }
+        let appToRestore = appBeforeStatusPopover ?? frontmostAppExcludingSelf()
+        closeStatusPopover()
+        if previousApp == nil { previousApp = appToRestore }
+        updates.checkForUpdates()
     }
 
     @objc private func openPermissionSettings() {

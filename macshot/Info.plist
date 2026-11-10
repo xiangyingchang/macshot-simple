@@ -10,5 +10,19 @@
 	<string>MacShot Simple needs screen recording permission to capture screenshots.</string>
 	<key>NSSupportsAutomaticTermination</key>
 	<false/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/xiangyingchang/macshot-simple/releases/latest/download/appcast-arm64.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>0Qcf3Vb6N2dNjrClA03x1UPYOaxal1J3/mXg8kraKio=</string>
+	<key>SURequireSignedFeed</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
 </dict>
 </plist>

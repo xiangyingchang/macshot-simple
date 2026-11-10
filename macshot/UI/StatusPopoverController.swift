@@ -10,23 +10,29 @@ final class StatusPopoverController: NSViewController {
     private static let minimumRowWidth: CGFloat = 160
 
     private let hotkeyDescription: String
+    private let updateState: UpdateState
     private let rowWidth: CGFloat
     private let onCapture: () -> Void
     private let onSettings: () -> Void
     private let onPermissionSettings: () -> Void
+    private let onCheckUpdate: () -> Void
     private let onAbout: () -> Void
     private let onQuit: () -> Void
 
     init(
         hotkeyDescription: String,
+        updateState: UpdateState = .idle,
         onCapture: @escaping () -> Void,
         onSettings: @escaping () -> Void,
         onPermissionSettings: @escaping () -> Void,
+        onCheckUpdate: @escaping () -> Void = {},
         onAbout: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
         self.hotkeyDescription = hotkeyDescription
-        rowWidth = Self.rowWidth(for: hotkeyDescription)
+        self.updateState = updateState
+        rowWidth = Self.rowWidth(for: hotkeyDescription, updateTitle: Self.updateTitle(for: updateState))
+        self.onCheckUpdate = onCheckUpdate
         self.onCapture = onCapture
         self.onSettings = onSettings
         self.onPermissionSettings = onPermissionSettings
@@ -35,7 +41,7 @@ final class StatusPopoverController: NSViewController {
         super.init(nibName: nil, bundle: nil)
         preferredContentSize = NSSize(
             width: rowWidth + Self.horizontalPadding * 2,
-            height: Self.panelHeight
+            height: Self.panelHeight(rows: 6)
         )
     }
 
@@ -86,6 +92,12 @@ final class StatusPopoverController: NSViewController {
             symbol: "lock.shield",
             action: #selector(permissionSettingsPressed)
         )
+        let updateRow = makeRow(
+            Self.updateTitle(for: updateState),
+            symbol: updateState.availableVersion == nil ? "arrow.triangle.2.circlepath" : "arrow.down.circle.fill",
+            isHighlighted: updateState.availableVersion != nil,
+            action: #selector(checkUpdatePressed)
+        )
         let aboutRow = makeRow(
             "关于 MacShot Simple",
             symbol: "info.circle",
@@ -108,13 +120,20 @@ final class StatusPopoverController: NSViewController {
         stack.setCustomSpacing(Self.sectionSpacing, after: permissionRow)
         stack.setCustomSpacing(Self.sectionSpacing, after: footerSeparator)
 
+        stack.addArrangedSubview(updateRow)
         stack.addArrangedSubview(aboutRow)
         stack.addArrangedSubview(quitRow)
         view = root
     }
 
-    private static let panelHeight: CGFloat =
-        rowHeight * 5 + 2 + sectionSpacing * 4 + 16
+    /// Rows plus two 1pt separators, four section gaps and vertical insets.
+    static func panelHeight(rows: Int) -> CGFloat {
+        rowHeight * CGFloat(rows) + 2 + sectionSpacing * 4 + 16
+    }
+
+    static func updateTitle(for state: UpdateState) -> String {
+        state.availableVersion.map { "升级到 \($0)" } ?? "检查更新…"
+    }
 
     private func addSeparator(to stack: NSStackView) -> NSBox {
         let separator = NSBox()
@@ -131,6 +150,7 @@ final class StatusPopoverController: NSViewController {
         symbol: String,
         shortcut: String? = nil,
         isPrimary: Bool = false,
+        isHighlighted: Bool = false,
         action: Selector
     ) -> NSView {
         let row = StatusPopoverRowView()
@@ -147,7 +167,7 @@ final class StatusPopoverController: NSViewController {
         button.translatesAutoresizingMaskIntoConstraints = false
         row.addSubview(button)
 
-        let symbolColor = isPrimary ? DesignTheme.green : NSColor.secondaryLabelColor
+        let symbolColor = isPrimary || isHighlighted ? DesignTheme.green : NSColor.secondaryLabelColor
         let symbolConfiguration = NSImage.SymbolConfiguration(
             pointSize: Self.symbolSize,
             weight: isPrimary ? .medium : .regular
@@ -160,7 +180,7 @@ final class StatusPopoverController: NSViewController {
         icon.imageScaling = .scaleProportionallyDown
         icon.translatesAutoresizingMaskIntoConstraints = false
 
-        let titleFont: NSFont = isPrimary
+        let titleFont: NSFont = isPrimary || isHighlighted
             ? NSFont.systemFont(ofSize: 13, weight: .semibold)
             : NSFont.menuFont(ofSize: 13)
         let titleLabel = NSTextField(labelWithString: title)
@@ -192,6 +212,20 @@ final class StatusPopoverController: NSViewController {
             titleLabel.centerYAnchor.constraint(equalTo: visuals.centerYAnchor)
         ])
 
+        if isHighlighted {
+            let dot = StatusPopoverAccessoryView()
+            dot.wantsLayer = true
+            dot.layer?.backgroundColor = DesignTheme.green.cgColor
+            dot.layer?.cornerRadius = 4
+            dot.translatesAutoresizingMaskIntoConstraints = false
+            row.addSubview(dot)
+            NSLayoutConstraint.activate([
+                dot.widthAnchor.constraint(equalToConstant: 8),
+                dot.heightAnchor.constraint(equalToConstant: 8),
+                dot.trailingAnchor.constraint(equalTo: row.trailingAnchor, constant: -Self.rowInset - 6),
+                dot.centerYAnchor.constraint(equalTo: row.centerYAnchor)
+            ])
+        }
         if let shortcut {
             let chip = makeShortcutChip(shortcut)
             row.addSubview(chip)
@@ -229,7 +263,7 @@ final class StatusPopoverController: NSViewController {
         return chip
     }
 
-    private static func rowWidth(for hotkeyDescription: String) -> CGFloat {
+    private static func rowWidth(for hotkeyDescription: String, updateTitle: String) -> CGFloat {
         let titleFont = NSFont.menuFont(ofSize: 13)
         let titles = [
             "设置快捷键…",
@@ -237,7 +271,11 @@ final class StatusPopoverController: NSViewController {
             "关于 MacShot Simple",
             "退出"
         ]
-        let widestTitle = titles.map { textWidth($0, font: titleFont) }.max() ?? 0
+        let widestTitle = max(
+            titles.map { textWidth($0, font: titleFont) }.max() ?? 0,
+            // Bold title plus the trailing availability dot.
+            textWidth(updateTitle, font: .systemFont(ofSize: 13, weight: .semibold)) + 18
+        )
         let contentWidth =
             widestTitle
             + symbolSize
@@ -269,6 +307,7 @@ final class StatusPopoverController: NSViewController {
     @objc private func capturePressed() { onCapture() }
     @objc private func settingsPressed() { onSettings() }
     @objc private func permissionSettingsPressed() { onPermissionSettings() }
+    @objc private func checkUpdatePressed() { onCheckUpdate() }
     @objc private func aboutPressed() { onAbout() }
     @objc private func quitPressed() { onQuit() }
 }

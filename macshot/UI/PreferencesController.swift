@@ -41,8 +41,16 @@ final class ShortcutField: NSTextField {
 /// opening a real window or requesting screen-recording permission.
 final class PreferencesContentView: NSView {
     let shortcutField: ShortcutField
-    init(onShortcut: @escaping (UInt32, UInt32) -> Void) {
+    let automaticUpdatesCheckbox: NSButton
+    private let onAutomaticUpdatesChange: (Bool) -> Void
+    init(
+        automaticallyChecksForUpdates: Bool = true,
+        onShortcut: @escaping (UInt32, UInt32) -> Void,
+        onAutomaticUpdatesChange: @escaping (Bool) -> Void = { _ in }
+    ) {
         shortcutField = ShortcutField(frame: NSRect(x: 170, y: 94, width: 182, height: 40))
+        automaticUpdatesCheckbox = NSButton(checkboxWithTitle: "自动检查更新（每天一次）", target: nil, action: nil)
+        self.onAutomaticUpdatesChange = onAutomaticUpdatesChange
         super.init(frame: NSRect(x: 0, y: 0, width: 380, height: 238))
         wantsLayer = true
         let title = NSTextField(labelWithString: "随手截一张")
@@ -68,15 +76,29 @@ final class PreferencesContentView: NSView {
             help?.stringValue = recording ? "按下带 ⌘、⌃、⌥ 或 ⇧ 的组合键。Esc 放弃修改。" : "点击快捷键修改。截图时按 Esc 退出。"
         }
         addSubview(help)
+        let checkbox = automaticUpdatesCheckbox
+        checkbox.state = automaticallyChecksForUpdates ? .on : .off
+        checkbox.font = .systemFont(ofSize: 12)
+        checkbox.target = self; checkbox.action = #selector(automaticUpdatesToggled)
+        checkbox.frame = NSRect(x: 26, y: 12, width: 326, height: 20); addSubview(checkbox)
     }
+    @objc private func automaticUpdatesToggled() { onAutomaticUpdatesChange(automaticUpdatesCheckbox.state == .on) }
     required init?(coder: NSCoder) { fatalError() }
     override func draw(_ dirtyRect: NSRect) { NSColor.windowBackgroundColor.setFill(); bounds.fill() }
 }
 
 final class PreferencesController: NSWindowController, NSWindowDelegate {
     var onClose: (() -> Void)?
-    init(onShortcut: @escaping (UInt32, UInt32) -> Void) {
-        let content = PreferencesContentView(onShortcut: onShortcut)
+    init(
+        automaticallyChecksForUpdates: Bool = true,
+        onShortcut: @escaping (UInt32, UInt32) -> Void,
+        onAutomaticUpdatesChange: @escaping (Bool) -> Void = { _ in }
+    ) {
+        let content = PreferencesContentView(
+            automaticallyChecksForUpdates: automaticallyChecksForUpdates,
+            onShortcut: onShortcut,
+            onAutomaticUpdatesChange: onAutomaticUpdatesChange
+        )
         let window = NSWindow(contentRect: content.bounds, styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = "截图设置"; window.isReleasedWhenClosed = false
         super.init(window: window)

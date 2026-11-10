@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.5 — 2026-11-10 (in-app updates)
+
+新增应用内升级（Sparkle 2.10.1）：每天检查一次 GitHub Release；有新版本时菜单栏图标出现小圆点，菜单显示“升级到 x”并高亮，点击后下载、校验 EdDSA 签名并重启到新版本。同一签名身份升级可保留屏幕录制授权。设置窗口可关闭“自动检查更新”。0.2.4 及以前需要手动安装一次 0.2.5，之后可在应用内升级。
+
+Add in-app updates (Sparkle 2.10.1): a daily check against GitHub Releases; when an update exists the menu bar icon shows a dot and the menu highlights "升级到 x" (Upgrade to x), which downloads, verifies the EdDSA signature and relaunches. Updates signed with the same identity keep Screen Recording consent. Automatic checks can be turned off in settings. Version 0.2.4 and earlier must install 0.2.5 manually once; later versions update in-app.
+
+The only network access is the update check and download. Release signing no longer uses `codesign --deep`; Sparkle components are signed inside-out with the same stable Apple identity. Packages remain **not notarized**.
+
 ## 0.2.4 — 2026-11-10 (capture focus and lifecycle)
 
 跨屏移动鼠标时更新截图窗口焦点和光标，非活动截图窗口接受首次拖选，并保留原生文字编辑。取消、复制、保存和进入长截图时释放普通截图画布及像素；新增生命周期回归测试与可选本机诊断。

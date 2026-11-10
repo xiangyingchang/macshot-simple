@@ -21,7 +21,9 @@ jobs:
             *"Refusing to create a release with an ad-hoc signature."*) ;;
             *) printf '%s\n' "$output"; exit 1 ;;
           esac
-          test ! -e dist/release-0.2.4
+          version=$(awk -F' = ' '/MARKETING_VERSION = [0-9]+\.[0-9]+\.[0-9]+;/ { gsub(/;/, "", $2); print $2; exit }' macshot.xcodeproj/project.pbxproj)
+          test -n "$version"
+          test ! -e "dist/release-$version"
       - run: scripts/build-simple.sh
         env:
           SIMPLE_ARCHS: 'arm64 x86_64'

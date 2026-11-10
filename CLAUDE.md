@@ -1,6 +1,7 @@
 # MacShot Simple development
 
-Screenshot-only fork of sw33tLie/macshot v4.3.0, GPL-3.0. No third-party packages.
+Screenshot-only fork of sw33tLie/macshot v4.3.0, GPL-3.0. The only third-party package is Sparkle (MIT), pinned exact via SPM
+with Package.resolved committed, used solely for in-app updates.
 The old full application is not part of this source tree.
 
 ## Scope
@@ -9,7 +10,8 @@ Keep: multi-display screen capture, window hover preview, selection/move/eight-h
 six annotations (rectangle, ellipse, arrow, pencil, pixelate, text), three stroke widths,
 six colors, undo/redo, clipboard and PNG save, one configurable global hotkey.
 Also keep the explicitly requested manual vertical long screenshot workflow.
-Do not reintroduce recording, uploads, OCR, history, unrelated standalone editors or updates incidentally.
+Also keep explicitly requested in-app updates (Sparkle 2, menu "检查更新…" / "升级到 x", daily check, opt-out in settings).
+Do not reintroduce recording, uploads, OCR, history or unrelated standalone editors incidentally.
 
 ## Architecture
 
@@ -19,12 +21,15 @@ Do not reintroduce recording, uploads, OCR, history, unrelated standalone editor
 - CaptureCanvas owns selection gestures and a native NSTextView for text/IME input.
 - AnnotationRenderer produces one composite for both preview and output. Mosaic must read already-composited pixels.
 - CaptureToolbar uses native NSButton subclasses; options are fixed choices, never sliders.
+- UpdateController owns Sparkle (gentle reminders: scheduled finds only badge the menu bar icon) and per-CPU feed selection.
 - UserDefaults stores only preferences, not screenshots or history.
 
 ## Rules
 
 Read relevant source before editing. Preserve user changes and stay in scope.
-All UI/state mutations run on the main actor. No network clients, telemetry or new permissions.
+All UI/state mutations run on the main actor. The only network access is Sparkle's update check/download
+(`network.client` entitlement plus Sparkle's `-spks`/`-spki` mach-lookup exception). No telemetry, other
+network clients or new permissions. A feed URL override exists only in Debug builds.
 Use KeyboardShortcutMatcher for character commands, physical key codes only for global hotkey storage and non-character keys.
 Retain pixel data and crop coordinates at original screen scale; do not accidentally export the dimming mask or handles.
 Do not use `NSApp.hide`: it can suspend Carbon global hotkeys. Return focus centrally in AppDelegate.
@@ -34,6 +39,8 @@ Do not fallback to raw screenshots if annotation rendering fails during output.
 Keep menus, tool controls and labels readable in light and dark system appearance.
 Do not persist screenshot pixels during tests or diagnostics of real screens.
 Keep signed identity and machine-specific paths out of source. Signing identity comes from an environment variable.
+Sign inside-out via scripts/sign-app.sh; never `codesign --deep` (breaks Sparkle XPC services).
+The Sparkle EdDSA private key lives only in the maintainer's login Keychain; never export it into the repo, CI or logs.
 
 ## Validation
 

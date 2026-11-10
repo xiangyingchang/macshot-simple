@@ -2,7 +2,12 @@
 # Build and package macOS previews. Does not publish or install.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-version=0.2.4
+# Single source of truth: the app target's MARKETING_VERSION in the project.
+version=$(awk -F' = ' '/MARKETING_VERSION = [0-9]+\.[0-9]+\.[0-9]+;/ { gsub(/;/, "", $2); print $2; exit }' macshot.xcodeproj/project.pbxproj)
+if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Unable to read MARKETING_VERSION from the project." >&2
+  exit 2
+fi
 if [[ -z "${SIMPLE_SIGNING_IDENTITY:-}" || "$SIMPLE_SIGNING_IDENTITY" == "-" ]]; then
   echo "Refusing to create a release with an ad-hoc signature. Set SIMPLE_SIGNING_IDENTITY to a stable signing identity; ad-hoc builds can invalidate Screen Recording consent after updates or reinstalls." >&2
   exit 2
@@ -14,8 +19,14 @@ if [[ "$identities" != *"$signing_identity"* ]]; then
   exit 2
 fi
 release_build="${SIMPLE_BUILD_ROOT:-$PWD/build/release-$version}"
+# Sparkle's appcast tools come from the exact SPM artifact resolved for this build.
+sparkle_bin="$release_build/SourcePackages/artifacts/sparkle/Sparkle/bin"
 SIMPLE_ARCHS='arm64 x86_64' SIMPLE_BUILD_ROOT="$release_build" SIMPLE_SIGNING_IDENTITY="$signing_identity" scripts/build-simple.sh
 app="$release_build/Build/Products/Release/MacShot Simple.app"
+if [[ ! -x "$sparkle_bin/generate_appcast" ]]; then
+  echo "Sparkle generate_appcast not found at $sparkle_bin." >&2
+  exit 1
+fi
 verify_stable_signature_identity() {
   local bundle="$1" code_details requirement identifier team_identifier authority
   if ! code_details=$(codesign -dv --verbose=4 "$bundle" 2>&1); then
@@ -67,8 +78,8 @@ for arch in arm64 x86_64; do
   cat "$staging/thin-$arch" > "$binary"
   # Thinning changes the executable, so sign again with the same stable identity
   # used by build-simple.sh. Do not silently replace it with an ad hoc signature.
-  codesign --force --deep --sign "$signing_identity" --entitlements macshot/macshot.entitlements "$stage/MacShot Simple.app"
-  codesign --verify --deep --strict "$stage/MacShot Simple.app"
+  # Sign Sparkle components inside-out; never use --deep.
+  scripts/sign-app.sh "$signing_identity" "$stage/MacShot Simple.app"
   arch_identity=$(verify_stable_signature_identity "$stage/MacShot Simple.app")
   if [[ "$arch_identity" != "$release_identity" ]]; then
     echo "Architecture-specific app signature does not match the stable release identity: $chip" >&2
@@ -105,8 +116,25 @@ TEXT
   hdiutil create -volname "MacShot Simple $version $chip" -srcfolder "$stage" -fs HFS+ -format UDZO -imagekey zlib-level=9 "$staging/$chip.dmg"
   hdiutil verify "$staging/$chip.dmg"
   mv "$staging/$chip.dmg" "$dmg"
+  # Per-architecture appcast, signed with the EdDSA key from the login Keychain.
+  # The private key is never read into this script or written to disk.
+  feed_dir="$staging/feed-$arch"
+  mkdir -p "$feed_dir"
+  cp "$dmg" "$feed_dir/"
+  # Optional SIMPLE_RELEASE_NOTES_HTML: an HTML fragment shown in Sparkle's window.
+  notes_html="$feed_dir/$(basename "$dmg" .dmg).html"
+  {
+    printf '<h3>MacShot Simple %s</h3>\n' "$version"
+    if [[ -n "${SIMPLE_RELEASE_NOTES_HTML:-}" ]]; then cat "$SIMPLE_RELEASE_NOTES_HTML"; fi
+    printf '<p><a href="https://github.com/xiangyingchang/macshot-simple/releases/tag/v%s">Release notes / 发布说明</a></p>\n' "$version"
+  } > "$notes_html"
+  "$sparkle_bin/generate_appcast" --embed-release-notes --maximum-deltas 0 \
+    --link "https://github.com/xiangyingchang/macshot-simple" \
+    --download-url-prefix "${SIMPLE_DOWNLOAD_URL_PREFIX:-https://github.com/xiangyingchang/macshot-simple/releases/download/v$version/}" \
+    -o "$output/appcast-$arch.xml" "$feed_dir"
+  grep -q "sparkle:edSignature" "$output/appcast-$arch.xml"
 done
 python3 scripts/package-source.py
 cp "dist/MacShot-Simple-$version-source.zip" "$output/"
-(cd "$output" && shasum -a 256 ./*.dmg ./*.zip > SHA256SUMS.txt)
+(cd "$output" && shasum -a 256 ./*.dmg ./*.zip ./appcast-*.xml > SHA256SUMS.txt)
 printf 'Release packages: %s\n' "$output"

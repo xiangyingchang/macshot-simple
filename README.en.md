@@ -2,15 +2,17 @@
 
 [中文](README.md) | English
 
-A small macOS menu bar app for screenshots and basic annotations. Derived from [sw33tLie/macshot v4.3.0](https://github.com/sw33tLie/macshot/tree/v4.3.0), built with Swift, AppKit and system capture APIs. No third-party dependencies.
+A small macOS menu bar app for screenshots and basic annotations. Derived from [sw33tLie/macshot v4.3.0](https://github.com/sw33tLie/macshot/tree/v4.3.0), built with Swift, AppKit and system capture APIs. The only third-party dependency is [Sparkle](https://sparkle-project.org) (MIT) for in-app updates.
 
-Version 0.2.4 is a development preview. Source and macOS preview downloads are available; notarized installers are not available yet. The interface currently uses Chinese labels.
+Version 0.2.5 is a development preview. Source and macOS preview downloads are available; notarized installers are not available yet. The interface currently uses Chinese labels.
 
 ## Download and install
 
 Download the matching `.dmg` from [Releases](https://github.com/xiangyingchang/macshot-simple/releases): Apple Silicon (M-series) or Intel. Check About This Mac for your chip. Open the disk image and drag the app into Applications.
 
 See the Release assets for installer sizes.
+
+**In-app updates (0.2.5+)**: when the menu bar icon shows a dot and the menu reads "升级到 x" (Upgrade to x), click it to download, verify (EdDSA signature) and relaunch into the new version without re-granting Screen Recording. Version 0.2.4 and earlier must install 0.2.5 manually once; later versions update in-app.
 
 Preview packages use the stable Apple Development signing identity but are **not notarized**. macOS may block first opening; review Open Anyway in System Settings → Privacy & Security. Do not disable system security. MacShot Simple captures screens only and does not record system audio. macOS Screen Recording consent is tied to the code-signing requirement: switching signing identities may require one fresh grant; reinstalling or updating with the same identity should preserve it. The deployment target is macOS 12.3, but older systems and Apple Silicon device runtime acceptance remain unverified.
 
@@ -35,7 +37,7 @@ Six tools: rectangle, ellipse, arrow, pencil, pixelate and text. Three stroke wi
 
 Each display has its own canvas; a selection stays on one display. Output preserves the original screenshot pixel resolution, without downscaling. The size label reports output pixels. On a 2× Retina display, a 500 × 300 point region produces approximately 1000 × 600 pixels, with crop edges rounded to pixel boundaries. PNG export is lossless.
 
-No recording, uploads, accounts, history, OCR, translation, pinned screenshots, beautification, automatic updates or standalone image editor. Interaction is inspired by common chat screenshot tools; exact WeChat or Feishu parity is not claimed.
+No recording, uploads, accounts, history, OCR, translation, pinned screenshots, beautification or standalone image editor. Update checks run once a day by default and can be turned off in settings. Interaction is inspired by common chat screenshot tools; exact WeChat or Feishu parity is not claimed.
 
 ## Long screenshots (0.2.0)
 
@@ -43,7 +45,7 @@ Requires macOS 14+. Select a scrollable region before adding annotations, click 
 
 On macOS 26, leave roughly 60 points above or below the selection for the floating controls. Avoid sticky controls, navigation bars and video when possible. Basic fixed headers/footers are retained once; complex dynamic or repeating content may not match. Single-frame mismatches are retried; recovery guidance appears after about 0.8 seconds of persistent failure. Roll back to captured content if prompted. One-pixel movements and small local visual changes are supported. Upward scrolling adds nothing. Limits: 20,000 pixels tall and 40 million pixels total. A partial result is preserved and its title states the reason when capture cannot continue.
 
-No automatic scrolling or added Accessibility permission. Stitching stays in memory. Long screenshots were introduced in 0.2.0; the current preview is 0.2.4. See [the plan and research](docs/LONG-CAPTURE.md).
+No automatic scrolling or added Accessibility permission. Stitching stays in memory. Long screenshots were introduced in 0.2.0; the current preview is 0.2.5. See [the plan and research](docs/LONG-CAPTURE.md).
 
 ## Build
 
@@ -78,7 +80,7 @@ The build script does not install, publish or change system permissions. Ad hoc 
 scripts/run-tests.sh
 ```
 
-Headless tests cover selection geometry, Retina cropping, annotation raster output, pixelation, undo/redo, stroke choices and toolbar appearance. Version 0.2.4 Release test and universal build results are recorded in [RELEASE-READINESS.md](RELEASE-READINESS.md). This does not establish manual mouse/IME acceptance, chat paste behavior, real multi-display behavior, or runtime compatibility on every supported macOS version and Apple Silicon device.
+Headless tests cover selection geometry, Retina cropping, annotation raster output, pixelation, undo/redo, stroke choices and toolbar appearance. Version 0.2.5 Release test and universal build results are recorded in [RELEASE-READINESS.md](RELEASE-READINESS.md). This does not establish manual mouse/IME acceptance, chat paste behavior, real multi-display behavior, or runtime compatibility on every supported macOS version and Apple Silicon device.
 
 After quitting the running app, an optional local capture diagnostic is available:
 
@@ -103,7 +105,7 @@ It captures screens, renders annotations and encodes PNG/TIFF in memory. It prin
 
 ## Privacy, contributions and license
 
-Screenshots stay on your Mac. The app has no upload feature, network client entitlement or telemetry. See [PRIVACY.md](PRIVACY.md).
+Screenshots stay on your Mac. The app has no upload feature or telemetry; its only network access is the Sparkle update check against this repository's GitHub Releases. See [PRIVACY.md](PRIVACY.md).
 
 Report bugs through [Issues](https://github.com/xiangyingchang/macshot-simple/issues). See [CONTRIBUTING.md](CONTRIBUTING.md) for contributions and [SECURITY.md](SECURITY.md) for private security reports.
 

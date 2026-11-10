@@ -8,6 +8,11 @@
 
 
 
+/* Begin PBXBuildFile section */
+		5A0B00042F00000100AA0001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 5A0B00022F00000100AA0001 /* Sparkle */; };
+		5A0B00052F00000100AA0001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 5A0B00032F00000100AA0001 /* Sparkle */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		2FAA00012F00000100AA0001 /* macshotTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = macshotTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2F4EB1222F61B60100B71643 /* MacShot Simple.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MacShot Simple.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -54,6 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5A0B00052F00000100AA0001 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -61,6 +67,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5A0B00042F00000100AA0001 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -106,6 +113,7 @@
 			);
 			name = macshotTests;
 			packageProductDependencies = (
+				5A0B00032F00000100AA0001 /* Sparkle */,
 			);
 			productName = macshotTests;
 			productReference = 2FAA00012F00000100AA0001 /* macshotTests.xctest */;
@@ -128,6 +136,7 @@
 			);
 			name = macshot;
 			packageProductDependencies = (
+				5A0B00022F00000100AA0001 /* Sparkle */,
 			);
 			productName = macshot;
 			productReference = 2F4EB1222F61B60100B71643 /* MacShot Simple.app */;
@@ -200,6 +209,7 @@
 			mainGroup = 2F4EB1192F61B60100B71643;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				5A0B00012F00000100AA0001 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2F4EB1232F61B60100B71643 /* Products */;
@@ -443,7 +453,7 @@
 				CODE_SIGN_ENTITLEMENTS = macshot/macshot.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -455,7 +465,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.4;
+				MARKETING_VERSION = 0.2.5;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-weak_framework",
@@ -481,7 +491,7 @@
 				CODE_SIGN_ENTITLEMENTS = macshot/macshot.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -493,7 +503,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.4;
+				MARKETING_VERSION = 0.2.5;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-weak_framework",
@@ -542,6 +552,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		5A0B00012F00000100AA0001 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.10.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5A0B00022F00000100AA0001 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A0B00012F00000100AA0001 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+		5A0B00032F00000100AA0001 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A0B00012F00000100AA0001 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 
 	};
