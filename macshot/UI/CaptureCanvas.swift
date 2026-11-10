@@ -47,6 +47,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     var onFailure: (() -> Void)?
     private var tracking: NSTrackingArea?
     override var acceptsFirstResponder: Bool { true }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     init(frame: NSRect, image: CGImage, windowRects: [NSRect], undimmedRects: [NSRect] = []) {
         self.baseImage = image
@@ -76,7 +77,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         if let tracking { removeTrackingArea(tracking) }
-        let area = NSTrackingArea(rect: bounds, options: [.mouseMoved, .activeAlways, .inVisibleRect], owner: self)
+        let area = NSTrackingArea(rect: bounds, options: [.mouseMoved, .mouseEnteredAndExited, .cursorUpdate, .activeAlways, .inVisibleRect], owner: self)
         addTrackingArea(area); tracking = area
     }
 
@@ -84,6 +85,29 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         addCursorRect(bounds, cursor: activeTool == .text ? .iBeam : .crosshair)
         if let selection, activeTool == nil { addCursorRect(selection.insetBy(dx: 10, dy: 10), cursor: .openHand) }
         if !toolbar.isHidden { addCursorRect(toolbar.frame, cursor: .arrow) }
+    }
+
+    private func focusCaptureWindow() {
+        guard let window = window as? CaptureWindow else { return }
+        if !window.isKeyWindow { window.makeKey() }
+        // Returning from another screen must not steal focus from an IME editor.
+        if let responder = window.firstResponder as? NSView, responder.isDescendant(of: self) { return }
+        window.makeFirstResponder(self)
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        focusCaptureWindow()
+        refreshPreview(at: convert(event.locationInWindow, from: nil))
+        cursorUpdate(with: event)
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        guard bounds.contains(point) else { return }
+        if !toolbar.isHidden, toolbar.frame.contains(point) { NSCursor.arrow.set() }
+        else if activeTool == .text { NSCursor.iBeam.set() }
+        else if activeTool == nil, let selection, selection.insetBy(dx: 10, dy: 10).contains(point) { NSCursor.openHand.set() }
+        else { NSCursor.crosshair.set() }
     }
 
     func refreshPreview(at point: NSPoint) {
@@ -112,6 +136,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     }
 
     override func mouseDown(with event: NSEvent) {
+        focusCaptureWindow()
         let point = CaptureGeometry.clamp(convert(event.locationInWindow, from: nil), to: bounds)
         let previousHistory = historyBeforePencilClick
         historyBeforePencilClick = nil

@@ -4,9 +4,17 @@ import Cocoa
 import Carbon
 import UniformTypeIdentifiers
 
-final class CaptureWindow: NSWindow {
+class CaptureWindow: NSWindow {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    override func close() {
+        // AppKit can retain the last key window after close. Its full-resolution
+        // canvas/backing store must not live until another window becomes key.
+        makeFirstResponder(nil)
+        contentView = nil
+        super.close()
+    }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
@@ -26,7 +34,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         if CommandLine.arguments.contains("--check-capture") {
-            Task { await CaptureCheck.run(); NSApp.terminate(nil) }
+            Task {
+                if CommandLine.arguments.contains("--check-lifecycle") { await CaptureCheck.runLifecycle(app: self) }
+                else { await CaptureCheck.run() }
+                NSApp.terminate(nil)
+            }
             return
         }
         // Prevent two copies from silently competing for the same global hotkey.
@@ -222,7 +234,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
 
-    private func showCaptures(_ captures: [ScreenCapture], windowInfo: [[String: Any]]) {
+    func showCaptures(_ captures: [ScreenCapture], windowInfo: [[String: Any]]) {
         let primaryHeight = NSScreen.screens.first?.frame.maxY ?? captures[0].screen.frame.maxY
         let preservedWindows = [aboutPanel?.window, statusPopover?.contentViewController?.view.window]
             .compactMap { $0 }
@@ -257,7 +269,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                 guard let self else { return }
                 for other in self.windows.compactMap({ $0.contentView as? CaptureCanvas }) where other !== canvas { other.resetSelection() }
             }
-            canvas.onScroll = { [weak self] rect in self?.startLongCapture(screen: capture.screen, selection: rect) }
+            let screen = capture.screen
+            canvas.onScroll = { [weak self] rect in self?.startLongCapture(screen: screen, selection: rect) }
             canvas.onCancel = { [weak self] in self?.dismissCaptures() }
             canvas.onCopy = { [weak self] image in self?.copy(image) }
             canvas.onSave = { [weak self] image in self?.save(image) }
@@ -288,8 +301,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if #available(macOS 26.0, *), ScrollCaptureSession.hudFrame(screen:screen,selection:selection) == nil {
             showError("请为完成按钮留出一点空间", detail:"缩小选区，在上方或下方留出约 60 点空白；建议只框选滚动内容。"); return
         }
-        for window in windows { window.orderOut(nil); window.close() }
-        windows.removeAll()
+        closeCaptureWindows()
         previousApp?.activate(options: .activateIgnoringOtherApps)
         let session = ScrollCaptureSession(screen: screen, selection: selection)
         scrollSession = session
@@ -313,13 +325,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func pngData(_ image: CGImage) -> Data? {
         NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
     }
-    private func copy(_ image: CGImage) {
+    func copy(_ image: CGImage, to pasteboard: NSPasteboard = .general) {
         guard let png = pngData(image) else { showError("复制失败", detail: "无法生成 PNG，请重试。"); return }
         let item = NSPasteboardItem()
         item.setData(png, forType: .png)
         if let tiff = NSBitmapImageRep(cgImage: image).tiffRepresentation { item.setData(tiff, forType: .tiff) }
-        NSPasteboard.general.clearContents()
-        guard NSPasteboard.general.writeObjects([item]) else { showError("复制失败", detail: "剪贴板暂时不可用，请重试。"); return }
+        pasteboard.clearContents()
+        guard pasteboard.writeObjects([item]) else { showError("复制失败", detail: "剪贴板暂时不可用，请重试。"); return }
         dismissCaptures()
     }
     private func save(_ image: CGImage) {
@@ -334,7 +346,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         NSApp.activate(ignoringOtherApps: true)
         let result = panel.runModal()
         if result == .OK, let url = panel.url {
-            do { try data.write(to: url, options: .atomic); saving = false; dismissCaptures(); return }
+            do { try savePNG(data, to: url); return }
             catch { showError("保存失败", detail: error.localizedDescription) }
         }
         saving = false
@@ -342,12 +354,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         windows.forEach { $0.orderFrontRegardless() }
         windows.first(where: { ($0.contentView as? CaptureCanvas)?.selection != nil })?.makeKeyAndOrderFront(nil)
     }
+    func savePNG(_ data: Data, to url: URL) throws {
+        try data.write(to: url, options: .atomic)
+        saving = false
+        dismissCaptures()
+    }
     private func dismissCaptures() {
         let review = longReview; longReview = nil; review?.close()
-        for window in windows { window.orderOut(nil); window.close() }
-        windows.removeAll()
+        closeCaptureWindows()
         returnFocusIfNeeded()
         restoreStatusPopoverBehavior()
+    }
+    // Shared by ordinary completion and the transition into scroll capture.
+    func closeCaptureWindows() {
+        for window in windows { window.orderOut(nil); window.close() }
+        windows.removeAll()
     }
     private func restoreStatusPopoverBehavior() {
         guard let popover = statusPopover, popover.isShown else { return }

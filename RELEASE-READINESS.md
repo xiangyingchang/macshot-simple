@@ -145,3 +145,12 @@ macOS 14+ 可使用长截图，macOS 26 的控制条需留在选区外（约 60 
 - [x] 推送前本机测试、Release 构建、签名/DMG 校验及重装授权验收均完成；远端 CI 与 Release 状态以 GitHub workflow 和 Releases 页面回读为准。
 - [ ] 物理鼠标、中文输入法和多屏场景仍需手工验收；合成事件测试不替代该验收。
 - 限制：预览包使用 Apple Development 签名但尚未公证；首次打开可能仍需 Gatekeeper 手动允许。
+
+### 0.2.4 截图焦点与生命周期（2026-11-10）
+
+- [x] `MACSHOT_KEEP_TEST_RESULTS=1 CONFIGURATION=Release scripts/run-tests.sh`：65 项通过、0 失败、0 跳过。新增非活动窗口首次拖选、跨窗口焦点/光标、完成后释放画布及像素、保存失败保留编辑等回归覆盖。
+- [x] 一次 arm64 + x86_64 通用 Release 构建通过；两个 DMG 内版本为 0.2.4（build 10），分别只含目标架构。
+- [x] 两个 DMG 的 `hdiutil verify` 与应用严格验签通过；签名 Authority、TeamIdentifier 和 designated requirement 均与 v0.2.3 发行包一致。沿用稳定 Apple Development 身份，仍未经苹果公证。
+- [x] 私人本机笔记由明确的 `docs/LOCAL-*.md` 规则排除，原笔记保留本机；源码归档与追踪源逐文件对照，并检查私人路径、签名姓名和凭证模式。许可证与双语安装说明保留。
+- 本机测试版已获用户验收；本次发布检查不替代或扩大该验收范围，也不覆盖当前安装。旧系统与 Apple Silicon 真机运行兼容性仍未验证。
+- 未复现的内存波动仍无已确认根因；本次仅说明窗口/画布/像素释放的代码修正和回归结果，不宣称整体内存问题已解决。

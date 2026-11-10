@@ -18,3 +18,6 @@ local-backup/
 
 # Local implementation history
 SIMPLE-PLAN.md
+
+# Private local notes; never publish or include in source archives
+docs/LOCAL-*.md

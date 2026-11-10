@@ -2,7 +2,7 @@
 # Build and package macOS previews. Does not publish or install.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-version=0.2.3
+version=0.2.4
 if [[ -z "${SIMPLE_SIGNING_IDENTITY:-}" || "$SIMPLE_SIGNING_IDENTITY" == "-" ]]; then
   echo "Refusing to create a release with an ad-hoc signature. Set SIMPLE_SIGNING_IDENTITY to a stable signing identity; ad-hoc builds can invalidate Screen Recording consent after updates or reinstalls." >&2
   exit 2
@@ -43,8 +43,16 @@ verify_stable_signature_identity() {
 }
 release_identity=$(verify_stable_signature_identity "$app")
 output="$PWD/dist/release-$version"
-staging=$(mktemp -d "${TMPDIR:-/tmp}/macshot-release.XXXXXX")
-trap 'rm -rf "$staging"' EXIT
+mkdir -p "$release_build"
+staging=$(mktemp -d "$release_build/macshot-release.XXXXXX")
+cleanup_staging() {
+  # Only move this invocation's isolated staging directory; never delete it.
+  if [[ -d "$staging" && "$staging" == "$release_build"/macshot-release.* ]]; then
+    mkdir -p "$HOME/.Trash"
+    mv "$staging" "$HOME/.Trash/macshot-release-$version-$(uuidgen)"
+  fi
+}
+trap cleanup_staging EXIT
 mkdir -p "$output"
 for arch in arm64 x86_64; do
   case "$arch" in

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.4 — 2026-11-10 (capture focus and lifecycle)
+
+跨屏移动鼠标时更新截图窗口焦点和光标，非活动截图窗口接受首次拖选，并保留原生文字编辑。取消、复制、保存和进入长截图时释放普通截图画布及像素；新增生命周期回归测试与可选本机诊断。
+
+Update capture focus and cursor on display entry, accept the first drag in inactive capture windows, and preserve native text editing. Release ordinary capture canvases and pixels on cancellation, copy, successful save and transition to long capture. Add lifecycle regression tests and opt-in local diagnostics.
+
+Release packages retain the previous stable Apple signing identity and remain **not notarized**. Local notes are excluded from Git and source archives. The reported memory fluctuation was not reproduced; this release does not claim to resolve its root cause.
+
 ## 0.2.3 — 2026-11-09 (double-click copy anywhere)
 
 Double-click anywhere on the screenshot canvas to copy and finish, including outside the selection and while an annotation tool is active. Clicking outside the selection keeps it; dragging starts a new selection and clears annotations. Double-clicking existing text still selects the word, and marked (composing) text does not trigger a copy.

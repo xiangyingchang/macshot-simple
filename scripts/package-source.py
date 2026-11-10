@@ -5,16 +5,23 @@ import hashlib
 import zipfile
 
 root = Path(__file__).resolve().parent.parent
-output = root / "dist" / "MacShot-Simple-0.2.3-source.zip"
+output = root / "dist" / "MacShot-Simple-0.2.4-source.zip"
 output.parent.mkdir(exist_ok=True)
 files = ["README.md", "README.en.md", "LICENSE", "NOTICE", "PRIVACY.md", "CONTRIBUTING.md", "SECURITY.md",
-         "CHANGELOG.md", "DESIGN.md", "AGENTS.md", "CLAUDE.md", ".gitignore", "RELEASE-READINESS.md"]
+         "CHANGELOG.md", "DESIGN.md", "EXECUTION_PLAN.md", "PROJECT_PROGRESS.md", "AGENTS.md", "CLAUDE.md", ".gitignore", "RELEASE-READINESS.md"]
 folders = ["macshot", "macshotTests", "macshot.xcodeproj", "scripts", ".github", "docs"]
 excluded_parts = {"xcuserdata", ".DS_Store", "__pycache__", ".git"}
+# Match .gitignore's docs/LOCAL-*.md rule explicitly, including when packaging
+# from an extracted source archive without a Git checkout.
+def publishable(path):
+    relative = path.relative_to(root)
+    return not (relative.parent == Path("docs") and relative.match("LOCAL-*.md"))
+
 paths = [root / name for name in files]
 for folder in folders:
     paths.extend(p for p in (root / folder).rglob("*") if p.is_file()
-                 and not excluded_parts.intersection(p.relative_to(root).parts))
+                 and not excluded_parts.intersection(p.relative_to(root).parts)
+                 and publishable(p))
 for path in paths:
     if not path.is_file():
         raise SystemExit(f"Missing required source: {path.name}")
